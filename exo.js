@@ -60,7 +60,7 @@ function trouSVG(it, p, cy, b, o){
 
 /* ---------- Lettres, propositions, barème d'un élément de fiche ---------- */
 function exoCtx(sc, it){
-  const map = new Map(), liste = []; let n = 0;
+  const map = new Map(), liste = []; let n = typeof repOffset==='function' ? repOffset(it, sc) : 0;
   walk(sc.list, b => { if (!aTrous(b)) return;
     const keys = b.tr.ligne ? ['ligne'] : partiesDe(b).map(x => x.key).filter(k => k!=='ligne' && (b.tr.p || {})[k]);
     for (const key of keys){ const L = LETTRES[n % 26] + (n >= 26 ? Math.floor(n / 26) : ''); n++; map.set(b.id + '|' + key, L); liste.push({L, b, key, s:specDe(b, key), ans:reponse(b, key)}); } });
@@ -69,7 +69,7 @@ function exoLignes(it, sc, found){ // [{parts:[[texte, gras, bleu]]}] ; found : 
   const c = exoCtx(sc, it), out = [];
   if (found) c.liste = c.liste.filter(t => found.has(t.L)).map(t => ({...t, ans:found.get(t.L)}));
   c.liste.forEach((t, i) => { if (t.s.rep!=='choix') return;
-    const opts = [t.ans, ...(t.s.props || []).filter(x => x && x!==t.ans)], r = rng((it.seed || 7) + i * 97);
+    const opts = [t.ans, ...(t.s.props || []).filter(x => x && x!==t.ans)], r = rng(seedOf(it) + i * 97);
     for (let j = opts.length - 1; j > 0; j--){ const m = Math.floor(r() * (j + 1)); [opts[j], opts[m]] = [opts[m], opts[j]]; }
     const parts = [[t.L + ' : ', true]]; opts.forEach(o => parts.push([(CORR && o===t.ans ? '☑ ' : '☐ ') + o + '      ', CORR && o===t.ans, CORR && o===t.ans]));
     out.push({parts}); });

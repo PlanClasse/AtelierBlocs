@@ -1,6 +1,6 @@
 'use strict';
-const APP_VERSION = 'v1.13.0';
-const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
+const APP_VERSION = 'v1.14.0';
+const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './fiche.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -574,24 +574,25 @@ function explode(list){ const out = [];
   const strip = b => { const c = {id:b.id, type:b.type, f:{...b.f}, in:{}}; if (b.bw) c.bw = true; if (b.tr) c.tr = b.tr; if (b.body) c.body = []; if (b.body2) c.body2 = []; return c; };
   const rec = b => { out.push(strip(b)); Object.values(b.in||{}).forEach(rec); (b.body||[]).forEach(rec); (b.body2||[]).forEach(rec); };
   list.forEach(rec); return out; }
-function instrOf(it, sc){ let ins = explode(sc.list); if (it.shuffle){ const r = rng(it.seed); for (let i=ins.length-1;i>0;i--){ const j = Math.floor(r()*(i+1)); [ins[i], ins[j]] = [ins[j], ins[i]]; } } return ins; }
+function instrOf(it, sc){ let ins = explode(sc.list); if (it.shuffle){ const r = rng(seedOf(it)); for (let i=ins.length-1;i>0;i--){ const j = Math.floor(r()*(i+1)); [ins[i], ins[j]] = [ins[j], ins[i]]; } } return ins; }
 const progLabel = sc => { const f = sc.list[0]; if (!f) return 'Programme vide'; const n = S.scripts.indexOf(sc) + 1; return 'Programme ' + n + ' : ' + (DEF[f.type].sh==='hat' ? hatText(f) : blockText(f)).slice(0, 50) + (sc.list.length > 1 ? ' (+' + (explode(sc.list).length - 1) + ')' : ''); };
 const PXK = 0.62;  // taille des images dans le document (1 = taille écran)
 function itemImages(it){ // [{doc, id}] pour l'aperçu et l'export
   const sc = S.scripts.find(s => s.id===it.sid); if (!sc) return null;
-  const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true, pick:it.mode==='assemble', exo: it.trous!==false && progATrous(sc) ? exoCtx(sc, it) : null};
+  const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true, pick:it.mode==='assemble' || it.mode==='line' || it.mode==='lines', exo: it.trous!==false && progATrous(sc) ? exoCtx(sc, it) : null};
   if (it.mode==='assemble'){ const o = newOut(opt); renderList(sc.list, 0, 0, o); return [{doc:svgDoc(o, 2)}]; }
   if (it.mode==='algo'){ const st = ALG.style; if (it.algoStyle) ALG.style = it.algoStyle; let d; try { d = avecTrousAlgo(sc, it, () => algoSVG(sc, 6)); } finally { ALG.style = st; } return d ? [{doc:d, algo:true}] : []; }
   return instrOf(it, sc).map(b => { const o = newOut(opt); renderBlock(b, 0, 0, o); return {doc:svgDoc(o, 2), id:b.id}; });
 }
 // cases à numéroter devant les instructions mises à plat (activées par défaut)
-const numOn = it => (it.mode==='line' || it.mode==='lines') && it.num!==false;
+const numOn = it => aPlat(it) && ordreDe(it)==='cases';
 const CASE_DOC = {w:26, h:26, svg:'<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><rect x="1.5" y="1.5" width="23" height="23" fill="#fff" stroke="#111" stroke-width="2"/></svg>'};
 function drawDoc(){
   const page = $('#page'); page.innerHTML = '';
   if (!S.doc.length) page.innerHTML = '<p class="muted" style="text-align:center;margin-top:40px">La fiche est vide. Ajoutez un texte ou un programme avec les boutons ci-dessus.<br>Astuce : clic droit sur un programme de la zone de travail → « Ajouter ce programme à la fiche ».</p>';
   S.doc.forEach((it, i) => {
     const box = document.createElement('div'); box.className = 'item it-' + it.t;
+    if (!it.id) it.id = nid(); box.dataset.id = it.id; if (it.id===SEL_IT) box.classList.add('sel'); box.addEventListener('pointerdown', () => ficheSel(it.id));
     const tools = document.createElement('div'); tools.className = 'itools';
     const btn = (l, t, fn) => { const b = document.createElement('button'); b.textContent = l; b.title = t; b.onclick = fn; tools.append(b); return b; };
     btn('↑', 'Monter', () => { if (i){ [S.doc[i-1], S.doc[i]] = [S.doc[i], S.doc[i-1]]; save(); drawDoc(); } });
@@ -603,42 +604,10 @@ function drawDoc(){
       ['B','I','U'].forEach((c, n) => { const b = document.createElement('button'); b.innerHTML = ['<b>G</b>','<i>I</i>','<u>S</u>'][n]; b.title = ['Gras (Ctrl+B)','Italique (Ctrl+I)','Souligné (Ctrl+U)'][n]; b.onmousedown = e => e.preventDefault(); b.onclick = () => { ed.focus(); document.execCommand(['bold','italic','underline'][n]); it.html = ed.innerHTML; save(); }; tools.prepend(b); });
       box.append(tools, ed);
     } else if (it.t==='break'){ box.append(tools); box.insertAdjacentHTML('beforeend', '<div class="pbreak">Saut de page</div>'); }
-    else if (it.t==='prog'){
-      const sc = S.scripts.find(s => s.id===it.sid);
-      const opts = document.createElement('div'); opts.className = 'popts';
-      if (!sc){ opts.innerHTML = '<span class="muted">Ce programme a été supprimé de la zone de travail.</span>'; box.append(tools, opts); page.append(box); return; }
-      const sel = document.createElement('select'); [['assemble','Programme assemblé'],['line','Instructions mises à plat : une ligne'],['lines','Instructions mises à plat : une par ligne'],['algo','Algorigramme'],['algotext','Algorithme (texte)']].forEach(([v,l]) => sel.add(new Option(l, v, false, it.mode===v)));
-      sel.onchange = () => { it.mode = sel.value; save(); drawDoc(); };
-      const chk = (l, key, t) => { const lb = document.createElement('label'); lb.title = t||''; const c = document.createElement('input'); c.type = 'checkbox'; c.checked = !!it[key]; c.onchange = () => { it[key] = c.checked; save(); drawDoc(); }; lb.append(c, ' ' + l); return lb; };
-      const name = document.createElement('span'); name.className = 'pname'; name.textContent = progLabel(sc);
-      opts.append(name, sel);
-      if (it.mode==='algo'){ const ss = document.createElement('select'); [['classic','Classique'],['sysml','SysML simplifié']].forEach(([v,l]) => ss.add(new Option(l, v, false, (it.algoStyle||ALG.style)===v))); ss.onchange = () => { it.algoStyle = ss.value; save(); drawDoc(); }; opts.append(ss); }
-      if (it.mode!=='assemble' && it.mode!=='algo'){ opts.append(chk('Mélanger', 'shuffle', 'Mélange l\'ordre des instructions pour ne pas donner la réponse'));
-        if (it.shuffle){ const rb = document.createElement('button'); rb.textContent = '🔀'; rb.title = 'Mélanger autrement'; rb.onclick = () => { it.seed = Math.floor(Math.random()*1e6); save(); drawDoc(); }; opts.append(rb); }
-        if (it.mode!=='algotext'){ const nc = chk('Cases à numéroter', 'num', 'Une case vide devant chaque instruction, pour écrire sa place dans le programme'); nc.querySelector('input').checked = numOn(it); opts.append(nc); } }
-      if (it.mode!=='algo' && it.mode!=='algotext') opts.append(chk('Masquer les valeurs', 'blankV', 'Nombres et textes vides'), chk('Masquer les menus', 'blankD', 'Menus déroulants et couleurs vides'), chk('Noir et blanc', 'bw'));
-      const sz = document.createElement('label'); sz.innerHTML = 'Taille '; const rg = document.createElement('input'); rg.type = 'range'; rg.min = 50; rg.max = 150; rg.step = 10; rg.value = Math.round((it.scale||1)*100); rg.oninput = () => { it.scale = rg.value/100; save(); drawDoc(); }; sz.append(rg); opts.append(sz);
-      if (it.mode==='algotext'){ if (progATrous(sc)){ const tc = chk('Trous', 'trous', 'Afficher les trous d\'exercice de ce programme'); tc.querySelector('input').checked = it.trous!==false; opts.append(tc); }
-        const tv = document.createElement('div'); tv.className = 'algotxt'; tv.innerHTML = avecTrousAlgo(sc, it, () => algoHTML(sc)); box.append(tools, opts, tv);
-        if (EXO_LAST) box.insertAdjacentHTML('beforeend', exoHTML(it, sc, EXO_LAST)); page.append(box); return; }
-      const view = document.createElement('div'); view.className = 'pview ' + it.mode;
-      const imgs = itemImages(it), k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1), hid = new Set(it.hide||[]);
-      for (const im of imgs){ const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
-        const sp = document.createElement('span'); sp.className = 'pimg' + (im.id && hid.has(im.id) ? ' off' : '');
-        sp.innerHTML = (im.id && numOn(it) ? `<span class="ncase" style="width:${Math.round(22*(it.scale||1))}px;height:${Math.round(22*(it.scale||1))}px"></span>` : '') + im.doc.svg.replace('<svg ', `<svg style="width:${w}px;height:${h}px" `);
-        if (im.id && numOn(it)) sp.classList.add('num');
-        if (im.id){ sp.title = hid.has(im.id) ? 'Instruction cachée (clic pour la remettre)' : 'Clic pour cacher cette instruction';
-          sp.onclick = () => { const s = new Set(it.hide||[]); s.has(im.id) ? s.delete(im.id) : s.add(im.id); it.hide = [...s]; save(); drawDoc(); }; }
-        view.append(sp); }
-      if (it.mode==='line' || it.mode==='lines') opts.insertAdjacentHTML('beforeend', '<span class="muted" style="width:100%">Cliquez sur une instruction pour la cacher (elle n\'ira pas dans le document).</span>');
-      if (it.mode==='assemble'){ opts.insertAdjacentHTML('beforeend', '<span class="muted" style="width:100%">Cliquez sur une instruction, ou sur une de ses valeurs, pour y faire un trou d\'exercice.</span>');
-        view.style.cursor = 'pointer'; view.onclick = e => { const g = e.target.closest('[data-bid]'); if (!g) return; const ref = locate(g.dataset.bid, [sc.list]); if (!ref) return; const k = e.target.closest('[data-k]'); trouDialog(blockAt(ref), k ? k.dataset.k : null); }; }
-      if (progATrous(sc)){ const tc = chk('Trous', 'trous', 'Afficher les trous d\'exercice de ce programme'); tc.querySelector('input').checked = it.trous!==false; opts.append(tc); }
-      box.append(tools, opts, view);
-      if (it.trous!==false && progATrous(sc)) box.insertAdjacentHTML('beforeend', exoHTML(it, sc, it.mode==='algo' ? EXO_LAST : null));
-    }
+    else if (it.t==='prog') ficheProg(it, i, box, tools);
     page.append(box);
   });
+  fichePanel();
 }
 function setView(v){ VIEW = v; document.body.dataset.view = v; document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.v===v)); if (v==='doc') drawDoc(); else drawWS(); }
 
@@ -664,20 +633,19 @@ async function exportDocx(){
       if (it.t==='text'){ for (const runs of htmlRuns(it.html)) children.push(new Paragraph({spacing:{after:80}, children: runs.map(r => new TextRun({text:r.text, bold:r.b, italics:r.i, underline:r.u ? {} : undefined}))})); }
       else if (it.t==='break') children.push(new Paragraph({children:[new PageBreak()]}));
       else if (it.t==='prog'){
-        if (it.mode==='algotext'){ const sc = S.scripts.find(s => s.id===it.sid); if (!sc) continue;
-          avecTrousAlgo(sc, it, () => { for (const l of algoLines(sc)) children.push(new Paragraph({indent:{left:l.lvl*567}, spacing:{after:40}, children: l.parts.flatMap(p => tokRuns(p[0], p[1], window.docx))})); });
-          if (EXO_LAST) exoDocx(it, sc, children, window.docx, EXO_LAST); continue; }
-        const imgs = itemImages(it); if (!imgs) continue; const hid = new Set(it.hide||[]), k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1);
+        if (it.mode==='algotext'){ const sc = S.scripts.find(s => s.id===it.sid); if (!sc) continue; await ficheAlgoDocx(it, sc, children, window.docx); continue; }
+        const imgs = itemImages(it); if (!imgs) continue; const scx = S.scripts.find(s => s.id===it.sid), info = aPlat(it) ? ordreInfo(it, scx) : null; const hid = new Set(it.hide||[]), k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1);
         const runs = [];
         for (const im of imgs){ if (im.id && hid.has(im.id)) continue;
           const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
           const data = new Uint8Array(await (await toPNG(im.doc, 3)).arrayBuffer());
           const img = new ImageRun({type:'png', data, transformation:{width:Math.round(w), height:Math.round(h)}});
-          if (im.id && numOn(it)){ const c = Math.round(18*(it.scale||1)); runs.push([new ImageRun({type:'png', data:caseData, transformation:{width:c, height:c}}), new TextRun({text:'  '}), img]); }
+          const pd = im.id && info ? await prefixPNG(it, scx, im.id, info) : null; if (pd){ const c = Math.round(18*(it.scale||1)); runs.push([new ImageRun({type:'png', data:pd, transformation:{width:c, height:c}}), new TextRun({text:'  '}), img]); }
           else runs.push([img]); }
         if (it.mode==='lines') runs.forEach(r => children.push(new Paragraph({spacing:{after:60}, children:r})));
         else if (it.mode==='line'){ const ch = []; runs.forEach((r, n) => { if (n) ch.push(new TextRun({text:'    '})); ch.push(...r); }); children.push(new Paragraph({spacing:{after:120}, children:ch})); }
         else children.push(new Paragraph({spacing:{before:60, after:120}, children:runs.flat()}));
+        if (info && ordreDe(it)==='reperes') ordreDocx(info.rep0, children, window.docx);
         { const sc = S.scripts.find(s => s.id===it.sid); if (sc && it.trous!==false && progATrous(sc)) exoDocx(it, sc, children, window.docx, it.mode==='algo' ? EXO_LAST : null); }
       }
     }
@@ -685,7 +653,7 @@ async function exportDocx(){
     const docu = new Document({creator:'Atelier blocs', styles:{default:{document:{run:{font:'Aptos', size:24}}}},
       sections:[{properties:{page:{size:{width:11906, height:16838}, margin:{top:567, right:567, bottom:567, left:567}}}, children}]});
     const blob = await Packer.toBlob(docu);
-    await saveFile(($('#dname').value.trim() || 'Fiche programmation') + (CORR ? ' - corrigé' : '') + '.docx', blob);
+    await saveFile(ficheNomFichier(), blob);
   } catch(e){ console.error(e); note('Erreur pendant la création du document : ' + e.message); }
   btn.disabled = false; btn.textContent = '⬇ Exporter en .docx';
 }

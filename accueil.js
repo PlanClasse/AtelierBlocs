@@ -53,6 +53,7 @@
     complet: () => { fermer(); setView('prog'); },
     prog:    () => { fermer(); setView('prog'); setAlgo(false); },
     fiche:   () => { fermer(); setView('doc'); },
+    trous:   () => { fermer(); setView('doc'); },
     algo:    () => { fermer(); setView('prog'); setAlgo(true); },
     mesblocs:() => { fermer(); setView('prog'); try { openFly('mes'); } catch(_){} },
     importer:() => { fermer(); setView('prog'); const f = document.getElementById('fImport'); if (f) f.click(); },
