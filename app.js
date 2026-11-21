@@ -40,7 +40,7 @@ for (const [id, cat, sh, txt] of BLOCKS){
 const isRep = id => ['rep','bool'].includes(DEF[id].sh);
 
 /* ---------- État ---------- */
-let S = {scripts:[], doc:[], vars:['Var1'], lists:['List1'], msgs:['message1'], uid:0, px:20, py:20, z:1.1};
+let S = {scripts:[], doc:[], vars:['Var1'], lists:['List1'], msgs:['message1'], procs:[], uid:0, px:20, py:20, z:1.1};
 const KEY = 'atelier-blocs-v1';
 try { const raw = localStorage.getItem(KEY); if (raw) Object.assign(S, JSON.parse(raw)); } catch(_){}
 let selected = S.scripts.length ? S.scripts[S.scripts.length-1].id : null, BW = false, VIEW = 'prog';
@@ -48,8 +48,22 @@ const nid = () => 'b' + (++S.uid) + Math.random().toString(36).slice(2,5);
 let saveT = null;
 const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(_){} }, 300); };
 
+/* ---------- Mes blocs : définitions créées par l'utilisateur ---------- */
+const HIDE_PAL = new Set(['defBloc','appelBloc']);
+const PT = {n:'nombre', s:'texte', b:'booléen'};
+function syncProcs(){
+  for (const id of Object.keys(DEF)) if (/^p(def|call|arg)_/.test(id)) delete DEF[id];
+  for (const pr of S.procs||[]){
+    DEF['pdef_'+pr.id] = {id:'pdef_'+pr.id, cat:'mes', sh:'hat', icon:false, txt:'définir '+pr.name+' '+pr.params.map(p=>p.name).join(' '),
+      rows:[['définir', {t:'pname', v:pr.name}, ...pr.params.map(p => ({t:'pparam', pt:p.t, v:p.name}))]]};
+    DEF['pcall_'+pr.id] = {id:'pcall_'+pr.id, cat:'mes', sh:'stack', icon:false, txt:pr.name,
+      rows:[[pr.name, ...pr.params.map((p,i) => ({t:p.t, k:'p'+i, v:''}))]]};
+    pr.params.forEach((p,i) => { DEF['parg_'+pr.id+'_'+i] = {id:'parg_'+pr.id+'_'+i, cat:'mes', sh:p.t==='b' ? 'bool' : 'rep', icon:false, txt:p.name, rows:[[p.name]]}; });
+  }
+}
+const MISSING = {cat:'mes', sh:'stack', icon:false, txt:'bloc supprimé', rows:[['bloc supprimé']]};
 function make(type, opt = {}){
-  const d = DEF[type], b = {id:nid(), type, f:{}, in:{}};
+  const d = DEF[type] || MISSING, b = {id:nid(), type, f:{}, in:{}};
   for (const row of d.rows) for (const p of row) if (typeof p==='object'){
     if (p.t==='var') b.f[p.k] = S.vars[0] || 'Var1';
     else if (p.t==='list') b.f[p.k] = S.lists[0] || 'List1';
@@ -99,9 +113,12 @@ function itemSize(p, b, o){
   if (p.t==='c5') return {w:5*30 + 8, h:28};
   if (p.t==='edit') return {w:tw(b.f[p.k]||' ') + (DEF[b.type].sh==='hat' ? 20 : 0), h:24, v:b.f[p.k]};
   if (p.t==='vname') return {w:tw(b.f[p.k]||''), h:16, v:b.f[p.k]};
+  if (p.t==='pname') return {w:tw(p.v)+16, h:28, v:p.v};
+  if (p.t==='pparam') return {w:tw(p.v) + (p.pt==='b' ? 30 : 22), h:28, v:p.v};
   return {w:0, h:0};
 }
 function lay(b, o){
+  if (!DEF[b.type]) DEF[b.type] = {...MISSING, id:b.type};
   const d = DEF[b.type], sh = d.sh, rep = sh==='rep' || sh==='bool';
   const rows = d.rows.map((row, ri) => {
     let x = rep ? (sh==='bool' ? 14 : 10) : 8, mh = 16; const items = [];
@@ -156,6 +173,8 @@ function drawItems(b, row, top, rowH, x0, y0, col, o, kids){
     else if (p.t==='edit'){ const hat = DEF[b.type].sh==='hat';
       s += `<g class="ed"${live}>${hat ? `<rect x="${it.x}" y="${cy-14}" width="${it.w}" height="28" rx="4" fill="${col.dark}" stroke="${col.darkS}"/>` : ''}<text x="${it.x + (hat?10:0)}" y="${cy+4}" fill="${col.text}">${esc(it.v)}</text></g>`; }
     else if (p.t==='vname') s += `<text x="${it.x}" y="${cy+4}" fill="${col.text}">${esc(it.v)}</text>`;
+    else if (p.t==='pname') s += `<rect x="${it.x}" y="${cy-14}" width="${it.w}" height="28" rx="4" fill="${col.dark}" stroke="${col.darkS}"/><text x="${it.x+8}" y="${cy+4}" fill="${col.text}">${esc(it.v)}</text>`;
+    else if (p.t==='pparam') s += (p.pt==='b' ? `<path d="${boolPath(it.w,28)}" transform="translate(${it.x},${cy-14})" fill="${col.dark}" stroke="${col.darkS}"/>` : `<rect x="${it.x}" y="${cy-14}" width="${it.w}" height="28" rx="14" fill="${col.dark}" stroke="${col.darkS}"/>`) + `<text x="${it.x+it.w/2}" y="${cy+4}" text-anchor="middle" fill="${col.text}">${esc(it.v)}</text>`;
   }
   return s;
 }
@@ -226,13 +245,44 @@ function drawCats(){
 }
 function palBlocks(c){
   const out = [];
-  for (const d of Object.values(DEF)) if (d.cat===c){
+  if (c==='mes') return (S.procs||[]).flatMap(pr => procBlocks(pr));
+  for (const d of Object.values(DEF)) if (d.cat===c && !HIDE_PAL.has(d.id)){
     if (d.id==='var') S.vars.forEach(n => out.push(make('var', {name:n})));
     else if (d.id==='liste') S.lists.forEach(n => out.push(make('liste', {name:n})));
     else out.push(make(d.id));
   }
   return out;
 }
+const procBlocks = pr => [make('pdef_'+pr.id), make('pcall_'+pr.id), ...pr.params.map((p,i) => make('parg_'+pr.id+'_'+i))];
+function palSvg(blocks, Z){
+  const o = newOut({pal:true}); let y = 6;
+  for (const b of blocks){ const L = lay(b, o); renderBlock(b, 0, y, o); y += L.h + (['rep','bool'].includes(DEF[b.type].sh) ? 10 : 14); }
+  const wmax = Math.max(300, o.box.x2 + 6);
+  return `<svg viewBox="-2 0 ${wmax} ${y}" style="width:${wmax*Z}px;height:${y*Z}px">${o.svg}</svg>`;
+}
+function procDialog(pr){
+  const isNew = !pr; const f = pr ? JSON.parse(JSON.stringify(pr)) : {id:nid(), name:'', params:[]};
+  dialog(`<p style="margin:0 0 8px;font-weight:600">${isNew ? 'Créer un bloc' : 'Modifier le bloc'}</p>
+    <label class="muted">Nom du bloc</label><input class="pnm" style="width:100%;font:inherit;padding:8px;border:1px solid #CBD5E1;border-radius:8px;margin:4px 0 10px">
+    <div class="muted">Paramètres (facultatif) : un nombre, un texte ou un booléen (vrai ou faux), autant que nécessaire.</div>
+    <div class="plist" style="display:flex;flex-direction:column;gap:6px;margin:8px 0"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="add" data-t="n">+ Nombre</button><button class="add" data-t="s">+ Texte</button><button class="add" data-t="b">+ Booléen</button></div>
+    <div class="row"><button class="no">Annuler</button><button class="pri ok">${isNew ? 'Créer' : 'Enregistrer'}</button></div>`, (ov, close) => {
+    const nm = ov.querySelector('.pnm'), pl = ov.querySelector('.plist'); nm.value = f.name; nm.focus();
+    const drawP = () => { pl.innerHTML = ''; f.params.forEach((p, i) => { const r = document.createElement('div'); r.style.cssText = 'display:flex;gap:6px;align-items:center';
+      r.innerHTML = `<span style="width:70px;font-size:12px;color:#64748B">${PT[p.t]}</span><input style="flex:1;font:inherit;padding:5px 8px;border:1px solid #CBD5E1;border-radius:6px"><button title="Monter">↑</button><button title="Retirer">✕</button>`;
+      const [inp, up, del] = [r.querySelector('input'), ...r.querySelectorAll('button')]; inp.value = p.name; inp.oninput = () => p.name = inp.value;
+      up.onclick = () => { if (i){ [f.params[i-1], f.params[i]] = [f.params[i], f.params[i-1]]; drawP(); } }; del.onclick = () => { f.params.splice(i, 1); drawP(); };
+      pl.append(r); }); };
+    drawP();
+    ov.querySelectorAll('.add').forEach(bt => bt.onclick = () => { const t = bt.dataset.t; let n = 1; while (f.params.some(p => p.name===PT[t]+n)) n++; f.params.push({t, name:PT[t]+n}); drawP(); });
+    ov.querySelector('.no').onclick = close;
+    ov.querySelector('.ok').onclick = () => { f.name = nm.value.trim(); if (!f.name){ nm.focus(); return; } f.params.forEach((p,i) => { p.name = (p.name||'').trim() || PT[p.t]+(i+1); });
+      if (isNew) S.procs.push(f); else { const old = S.procs.find(x => x.id===f.id); Object.assign(old, f); }
+      syncProcs(); close(); openCats.add('mes'); draw(); };
+  });
+}
+function procUsed(pr){ let n = 0; const re = new RegExp('^p(def|call|arg)_' + pr.id + '(_|$)'); S.scripts.forEach(s => walk(s.list, b => { if (re.test(b.type)) n++; })); return n; }
 function drawPalette(){
   const fly = $("#palsecs"); fly.innerHTML = ""; const q = norm(palQ); const Z = S.z * 0.9;
   for (const c of ORDER){ const C = CATS[c];
@@ -244,6 +294,16 @@ function drawPalette(){
     h2.onclick = () => { if (openCats.has(c)) openCats.delete(c); else openCats.add(c); localStorage.setItem('atelier-open', JSON.stringify([...openCats])); drawPalette(); };
     sec.append(h2);
     if (open){
+      if (c==='mes'){ const bt = document.createElement('button'); bt.className = 'mk'; bt.textContent = '+ Créer un bloc'; bt.onclick = () => procDialog(null); sec.append(bt);
+        for (const pr of S.procs||[]){ const bl = procBlocks(pr).filter(b => !q || blocks.some(x => x.type===b.type)); if (!bl.length) continue;
+          const hd = document.createElement('div'); hd.className = 'proch'; hd.innerHTML = `<b></b><button title="Modifier le nom ou les paramètres">✏</button><button title="Supprimer ce bloc">🗑</button>`;
+          hd.querySelector('b').textContent = pr.name;
+          hd.querySelectorAll('button')[0].onclick = () => procDialog(pr);
+          hd.querySelectorAll('button')[1].onclick = () => { const n = procUsed(pr); if (n) return note('Ce bloc est utilisé ' + n + ' fois dans la zone de travail : retirez-le des programmes avant de le supprimer.');
+            S.procs = S.procs.filter(x => x!==pr); syncProcs(); draw(); };
+          sec.append(hd); sec.insertAdjacentHTML('beforeend', palSvg(bl, Z)); }
+        if (!(S.procs||[]).length) sec.insertAdjacentHTML('beforeend', '<p class="muted" style="margin:6px 12px 10px">Créez un bloc : il apparaîtra ici avec son bloc « définir » et le bloc qui l\'appelle.</p>');
+        fly.append(sec); continue; }
       if (c==='var' || c==='list'){ const bt = document.createElement('button'); bt.className = 'mk'; bt.textContent = c==='var' ? '+ Créer une variable' : '+ Créer une liste';
         bt.onclick = () => ask(c==='var' ? 'Nom de la nouvelle variable' : 'Nom de la nouvelle liste', '', v => { v = v.trim(); if (!v) return; const arr = c==='var' ? S.vars : S.lists; if (!arr.includes(v)) arr.push(v); save(); drawPalette(); });
         sec.append(bt); }
@@ -576,7 +636,7 @@ $('#aProg').onclick = e => { const r = e.currentTarget.getBoundingClientRect();
 $('#bDocx').onclick = exportDocx;
 $('#bSave').onclick = () => saveFile('atelier-blocs.json', new Blob([JSON.stringify(S, null, 1)], {type:'application/json'}));
 $('#fOpen').onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader();
-  rd.onload = () => { try { const o = JSON.parse(rd.result); if (!o.scripts) throw new Error('format'); S = Object.assign({scripts:[], doc:[], vars:['Var1'], lists:['List1'], msgs:['message1'], uid:0, px:20, py:20, z:1.1}, o); selected = null; draw(); note('Projet ouvert.'); } catch(_){ note('Ce fichier n\'est pas un projet de l\'atelier.'); } };
+  rd.onload = () => { try { const o = JSON.parse(rd.result); if (!o.scripts) throw new Error('format'); S = Object.assign({scripts:[], doc:[], vars:['Var1'], lists:['List1'], msgs:['message1'], procs:[], uid:0, px:20, py:20, z:1.1}, o); syncProcs(); selected = null; draw(); note('Projet ouvert.'); } catch(_){ note('Ce fichier n\'est pas un projet de l\'atelier.'); } };
   rd.readAsText(f); e.target.value = ''; };
 addEventListener('keydown', e => { if ((e.key==='Delete' || e.key==='Backspace') && VIEW==='prog' && selected && !/INPUT|TEXTAREA/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable){
   dialog('<p style="margin:0 0 12px">Supprimer le programme sélectionné ?</p><div class="row"><button class="no">Annuler</button><button class="danger ok">Supprimer</button></div>', (ov, close) => { ov.querySelector('.no').onclick = close; ov.querySelector('.ok').onclick = () => { close(); S.scripts = S.scripts.filter(s => s.id!==selected); selected = null; draw(); }; }); } });
@@ -586,4 +646,4 @@ if (!S.scripts.length && !localStorage.getItem(KEY)){
   const a = make('boutonA'), r = make('repeter'), t = make('aff'), w = make('attendre'); r.f.k0 = '3'; t.f.k0 = 'Bonjour'; r.body.push(t, w);
   S.scripts.push({id:nid(), x:30, y:30, list:[a, r]}); selected = S.scripts[0].id;
 }
-drawCats(); setView('prog'); draw();
+syncProcs(); drawCats(); setView('prog'); draw();
