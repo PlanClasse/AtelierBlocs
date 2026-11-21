@@ -1,6 +1,6 @@
 'use strict';
-const APP_VERSION = 'v1.2.0';
-const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
+const APP_VERSION = 'v1.4.0';
+const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -243,9 +243,17 @@ let palQ = '', openCats = new Set(JSON.parse(localStorage.getItem('atelier-open'
 function drawCats(){
   const el = $('#cats'); el.innerHTML = '';
   for (const c of ORDER){ const C = CATS[c]; const d = document.createElement('div'); d.className = 'cat'; d.innerHTML = `<i style="background:${C.c}"></i><span>${C.l}</span>`;
-    d.onclick = () => { openCats.add(c); palQ = ''; $('#palq').value = ''; drawPalette(); const s = document.getElementById('sec-'+c); if (s) s.scrollIntoView({behavior:'smooth', block:'start'}); };
+    d.dataset.c = c; d.onclick = () => openFly(c);
     el.append(d); }
+  const q = document.createElement('div'); q.className = 'cat'; q.innerHTML = '<i class="srch">🔍</i><span>Chercher</span>'; q.onclick = () => { openFly(null); $('#palq').focus(); }; el.prepend(q);
 }
+let palCat = null;
+function openFly(c){ if (document.body.classList.contains('fly-open') && palCat===c && c){ closeFly(); return; }
+  palCat = c; palQ = ''; $('#palq').value = ''; document.body.classList.add('fly-open');
+  document.querySelectorAll('.cat').forEach(x => x.classList.toggle('on', x.dataset.c===c)); drawPalette(); $('#palsecs').scrollTop = 0; }
+function closeFly(){ document.body.classList.remove('fly-open'); document.querySelectorAll('.cat').forEach(x => x.classList.remove('on')); }
+document.addEventListener('pointerdown', e => { if (document.body.classList.contains('fly-open') && !e.target.closest('#flyout,#cats,.menu,.ov')) closeFly(); }, true);
+addEventListener('keydown', e => { if (e.key==='Escape') closeFly(); });
 function palBlocks(c){
   const out = [];
   if (c==='mes') return (S.procs||[]).flatMap(pr => procBlocks(pr));
@@ -292,7 +300,8 @@ function drawPalette(){
   for (const c of ORDER){ const C = CATS[c];
     let blocks = palBlocks(c); if (q) blocks = blocks.filter(b => norm(DEF[b.type].txt.replace(TOK,' ') + ' ' + Object.values(b.f).join(' ')).includes(q));
     if (q && !blocks.length) continue;
-    const open = q || openCats.has(c);
+    if (!q && palCat && c!==palCat) continue;
+    const open = q || !palCat || openCats.has(c) || c===palCat;
     const sec = document.createElement('div'); sec.className = 'sec' + (open ? '' : ' closed'); sec.id = 'sec-'+c;
     const h2 = document.createElement('h2'); h2.innerHTML = `<i style="background:${C.c}"></i>${C.l}<span class="n">${blocks.length}</span><span class="ch">▾</span>`;
     h2.onclick = () => { if (openCats.has(c)) openCats.delete(c); else openCats.add(c); localStorage.setItem('atelier-open', JSON.stringify([...openCats])); drawPalette(); };
@@ -338,7 +347,7 @@ function drawWS(){
   $('#wsv').innerHTML = `<g transform="scale(${S.z}) translate(${S.px},${S.py})">${sel}${o.svg}</g>`;
   $('#empty').style.display = S.scripts.length ? 'none' : '';
 }
-function draw(){ drawWS(); drawPalette(); save(); if (VIEW==='doc') drawDoc(); }
+function draw(){ S.sel = selected; drawWS(); drawPalette(); drawAlgo(); save(); if (VIEW==='doc') drawDoc(); }
 const toWorld = (cx, cy) => { const r = $('#ws').getBoundingClientRect(); return [(cx - r.left)/S.z - S.px, (cy - r.top)/S.z - S.py]; };
 
 /* ---------- Glisser-déposer ---------- */
@@ -350,7 +359,7 @@ function startDrag(e, blocks, gx, gy, from){
 function onMove(e){
   if (!D) return;
   if (!D.moved && Math.hypot(e.clientX-D.sx, e.clientY-D.sy) < 5) return;
-  if (!D.moved){ D.moved = true; if (D.from.detach) D.from.detach(); cleanScripts(); drawWS(); closeMenus(); }
+  if (!D.moved){ D.moved = true; if (D.from.detach) D.from.detach(); cleanScripts(); drawWS(); closeMenus(); closeFly(); }
   const [wx, wy] = toWorld(e.clientX, e.clientY); D.x = wx - D.gx; D.y = wy - D.gy;
   const first = D.blocks[0], fsh = DEF[first.type].sh, last = D.blocks[D.blocks.length-1], o0 = {};
   const dh = listH(D.blocks, o0); let best = null, bd = 30;
@@ -397,7 +406,7 @@ $('#wsv').addEventListener('pointerdown', e => {
   if (e.button) return; closeMenus();
   const g = e.target.closest('[data-bid]');
   if (!g){ // déplacer la vue
-    selected = null; drawWS();
+    selected = null; S.sel = null; drawWS(); drawAlgo(); save();
     const sx = e.clientX, sy = e.clientY, px = S.px, py = S.py;
     const mv = ev => { S.px = px + (ev.clientX - sx)/S.z; S.py = py + (ev.clientY - sy)/S.z; drawWS(); };
     addEventListener('pointermove', mv); addEventListener('pointerup', () => { removeEventListener('pointermove', mv); save(); }, {once:true});
@@ -411,7 +420,7 @@ $('#wsv').addEventListener('pointerdown', e => {
   e.preventDefault();
   startDrag(e, blocks, wx - +tr[1], wy - +tr[2], {
     detach: () => { if (ref.type==='list') ref.list.splice(ref.i); else delete ref.parent.in[ref.k]; if (sc && sc.list===ref.list && ref.i===0){} },
-    click: ev => { if (sc) selected = sc.id; drawWS(); const f2 = fld && document.querySelector(`[data-bid="${id}"] [data-k="${fld.dataset.k}"]`); if (f2) editValue(b, f2.dataset.k, f2, ev); }
+    click: ev => { if (sc) selected = sc.id; S.sel = selected; drawWS(); drawAlgo(); save(); const f2 = fld && document.querySelector(`[data-bid="${id}"] [data-k="${fld.dataset.k}"]`); if (f2) editValue(b, f2.dataset.k, f2, ev); }
   });
 });
 $('#wsv').addEventListener('contextmenu', e => {
@@ -423,6 +432,9 @@ $('#wsv').addEventListener('contextmenu', e => {
     ['◐ Tout le programme en noir et blanc', () => { walk(sc.list, x => x.bw = true); draw(); }],
     ['🎨 Tout le programme en couleur', () => { walk(sc.list, x => delete x.bw); draw(); }],
     ...(/^p(def|call|arg)_/.test(b.type) ? [['✏ Modifier ce bloc (nom, libellés, paramètres)', () => { const pr = (S.procs||[]).find(x => b.type.split('_')[1]===x.id); if (pr) procDialog(pr); }]] : []),
+    ['✏ Texte dans l\'algorigramme et l\'algorithme…', () => { const cur = b.alg || (DEF[b.type].sh==='hat' ? hatText(b) : blockText(b));
+      ask('Formulation de ce bloc dans l\'algorigramme et l\'algorithme (vide : formulation automatique)', cur, v => { v = v.trim(); const auto = (() => { const a = b.alg; delete b.alg; const t = DEF[b.type].sh==='hat' ? hatText(b) : blockText(b); if (a) b.alg = a; return t; })();
+        if (!v || v===auto) delete b.alg; else b.alg = v; draw(); }); }],
     ['📄 Ajouter ce programme à la fiche', () => { addProgToDoc(sc.id); }],
     ['📷 Image de ce programme', () => { selected = sc.id; capture(); }],
     ['🗑 Supprimer ce bloc', () => { if (ref.type==='list') ref.list.splice(ref.i, 1); else delete ref.parent.in[ref.k]; cleanScripts(); draw(); }],
@@ -449,7 +461,7 @@ function addBySelection(b){
     // faire défiler la vue jusqu'au nouveau programme
     const r = $('#ws').getBoundingClientRect(); if ((y + S.py)*S.z > r.height - 80) S.py = -y + 40;
   } else sc.list.push(b);
-  draw();
+  closeFly(); draw();
 }
 
 /* ---------- Modifier une valeur ---------- */
@@ -535,6 +547,7 @@ function itemImages(it){ // [{doc, id}] pour l'aperçu et l'export
   const sc = S.scripts.find(s => s.id===it.sid); if (!sc) return null;
   const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true};
   if (it.mode==='assemble'){ const o = newOut(opt); renderList(sc.list, 0, 0, o); return [{doc:svgDoc(o, 2)}]; }
+  if (it.mode==='algo'){ const st = ALG.style; if (it.algoStyle) ALG.style = it.algoStyle; const d = algoSVG(sc, 6); ALG.style = st; return d ? [{doc:d, algo:true}] : []; }
   return instrOf(it, sc).map(b => { const o = newOut(opt); renderBlock(b, 0, 0, o); return {doc:svgDoc(o, 2), id:b.id}; });
 }
 function drawDoc(){
@@ -557,24 +570,26 @@ function drawDoc(){
       const sc = S.scripts.find(s => s.id===it.sid);
       const opts = document.createElement('div'); opts.className = 'popts';
       if (!sc){ opts.innerHTML = '<span class="muted">Ce programme a été supprimé de la zone de travail.</span>'; box.append(tools, opts); page.append(box); return; }
-      const sel = document.createElement('select'); [['assemble','Programme assemblé'],['line','Instructions mises à plat : une ligne'],['lines','Instructions mises à plat : une par ligne']].forEach(([v,l]) => sel.add(new Option(l, v, false, it.mode===v)));
+      const sel = document.createElement('select'); [['assemble','Programme assemblé'],['line','Instructions mises à plat : une ligne'],['lines','Instructions mises à plat : une par ligne'],['algo','Algorigramme'],['algotext','Algorithme (texte)']].forEach(([v,l]) => sel.add(new Option(l, v, false, it.mode===v)));
       sel.onchange = () => { it.mode = sel.value; save(); drawDoc(); };
       const chk = (l, key, t) => { const lb = document.createElement('label'); lb.title = t||''; const c = document.createElement('input'); c.type = 'checkbox'; c.checked = !!it[key]; c.onchange = () => { it[key] = c.checked; save(); drawDoc(); }; lb.append(c, ' ' + l); return lb; };
       const name = document.createElement('span'); name.className = 'pname'; name.textContent = progLabel(sc);
       opts.append(name, sel);
-      if (it.mode!=='assemble'){ opts.append(chk('Mélanger', 'shuffle', 'Mélange l\'ordre des instructions pour ne pas donner la réponse'));
+      if (it.mode==='algo'){ const ss = document.createElement('select'); [['classic','Classique'],['sysml','SysML simplifié']].forEach(([v,l]) => ss.add(new Option(l, v, false, (it.algoStyle||ALG.style)===v))); ss.onchange = () => { it.algoStyle = ss.value; save(); drawDoc(); }; opts.append(ss); }
+      if (it.mode!=='assemble' && it.mode!=='algo'){ opts.append(chk('Mélanger', 'shuffle', 'Mélange l\'ordre des instructions pour ne pas donner la réponse'));
         if (it.shuffle){ const rb = document.createElement('button'); rb.textContent = '🔀'; rb.title = 'Mélanger autrement'; rb.onclick = () => { it.seed = Math.floor(Math.random()*1e6); save(); drawDoc(); }; opts.append(rb); } }
-      opts.append(chk('Masquer les valeurs', 'blankV', 'Nombres et textes vides'), chk('Masquer les menus', 'blankD', 'Menus déroulants et couleurs vides'), chk('Noir et blanc', 'bw'));
+      if (it.mode!=='algo' && it.mode!=='algotext') opts.append(chk('Masquer les valeurs', 'blankV', 'Nombres et textes vides'), chk('Masquer les menus', 'blankD', 'Menus déroulants et couleurs vides'), chk('Noir et blanc', 'bw'));
       const sz = document.createElement('label'); sz.innerHTML = 'Taille '; const rg = document.createElement('input'); rg.type = 'range'; rg.min = 50; rg.max = 150; rg.step = 10; rg.value = Math.round((it.scale||1)*100); rg.oninput = () => { it.scale = rg.value/100; save(); drawDoc(); }; sz.append(rg); opts.append(sz);
+      if (it.mode==='algotext'){ const tv = document.createElement('div'); tv.className = 'algotxt'; tv.innerHTML = algoHTML(sc); box.append(tools, opts, tv); page.append(box); return; }
       const view = document.createElement('div'); view.className = 'pview ' + it.mode;
-      const imgs = itemImages(it), k = PXK * (it.scale||1), hid = new Set(it.hide||[]);
+      const imgs = itemImages(it), k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1), hid = new Set(it.hide||[]);
       for (const im of imgs){ const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
         const sp = document.createElement('span'); sp.className = 'pimg' + (im.id && hid.has(im.id) ? ' off' : '');
         sp.innerHTML = im.doc.svg.replace('<svg ', `<svg style="width:${w}px;height:${h}px" `);
         if (im.id){ sp.title = hid.has(im.id) ? 'Instruction cachée (clic pour la remettre)' : 'Clic pour cacher cette instruction';
           sp.onclick = () => { const s = new Set(it.hide||[]); s.has(im.id) ? s.delete(im.id) : s.add(im.id); it.hide = [...s]; save(); drawDoc(); }; }
         view.append(sp); }
-      if (it.mode!=='assemble') opts.insertAdjacentHTML('beforeend', '<span class="muted" style="width:100%">Cliquez sur une instruction pour la cacher (elle n\'ira pas dans le document).</span>');
+      if (it.mode==='line' || it.mode==='lines') opts.insertAdjacentHTML('beforeend', '<span class="muted" style="width:100%">Cliquez sur une instruction pour la cacher (elle n\'ira pas dans le document).</span>');
       box.append(tools, opts, view);
     }
     page.append(box);
@@ -604,7 +619,9 @@ async function exportDocx(){
       if (it.t==='text'){ for (const runs of htmlRuns(it.html)) children.push(new Paragraph({spacing:{after:80}, children: runs.map(r => new TextRun({text:r.text, bold:r.b, italics:r.i, underline:r.u ? {} : undefined}))})); }
       else if (it.t==='break') children.push(new Paragraph({children:[new PageBreak()]}));
       else if (it.t==='prog'){
-        const imgs = itemImages(it); if (!imgs) continue; const hid = new Set(it.hide||[]), k = PXK * (it.scale||1);
+        if (it.mode==='algotext'){ const sc = S.scripts.find(s => s.id===it.sid); if (!sc) continue;
+          for (const l of algoLines(sc)) children.push(new Paragraph({indent:{left:l.lvl*567}, spacing:{after:40}, children: l.parts.map(p => new TextRun({text:p[0], bold:p[1]}))})); continue; }
+        const imgs = itemImages(it); if (!imgs) continue; const hid = new Set(it.hide||[]), k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1);
         const runs = [];
         for (const im of imgs){ if (im.id && hid.has(im.id)) continue;
           const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
@@ -622,6 +639,53 @@ async function exportDocx(){
     await saveFile(($('#dname').value.trim() || 'Fiche programmation') + '.docx', blob);
   } catch(e){ console.error(e); note('Erreur pendant la création du document : ' + e.message); }
   btn.disabled = false; btn.textContent = '⬇ Exporter en .docx';
+}
+
+/* ═══════════════ Algorigramme (à côté des blocs, ou dans une autre fenêtre) ═══════════════ */
+const curScript = () => S.scripts.find(s => s.id===(selected || S.sel)) || S.scripts[0];
+function drawAlgo(){
+  const on = document.body.classList.contains('algo-on') || document.body.classList.contains('algo-only'); if (!on) return;
+  const sc = curScript(), v = $('#algov');
+  $('#algoName').textContent = sc ? progLabel(sc) : '';
+  $('#aStyle').value = ALG.style; document.querySelectorAll('.atab').forEach(t => t.classList.toggle('on', t.dataset.v===ALG.view));
+  $('#aStyle').style.display = ALG.view==='chart' ? '' : 'none'; $('#aCopy').style.display = ALG.view==='text' ? '' : 'none'; $('#aImg').style.display = ALG.view==='chart' ? '' : 'none';
+  if (!sc){ v.innerHTML = '<p class="muted" style="padding:20px">Construisez un programme : son ' + (ALG.view==='text' ? 'algorithme' : 'algorigramme') + ' s\'affichera ici.</p>'; return; }
+  if (ALG.view==='text'){ v.innerHTML = `<div class="algotxt" style="font-size:${15*(S.az||1)}px">${algoHTML(sc)}</div>`; return; }
+  const d = algoSVG(sc); v.innerHTML = d ? d.svg.replace('<svg ', `<svg style="width:${d.w * (S.az||1)}px;height:${d.h * (S.az||1)}px" `) : '';
+}
+function setAlgo(on){ document.body.classList.toggle('algo-on', on); S.showAlgo = on; $('#bAlgo').classList.toggle('on', on); save(); drawAlgo(); drawWS(); }
+const saveAlg = () => { try { localStorage.setItem('atelier-algo', JSON.stringify(ALG)); } catch(_){} };
+$('#bAlgo').onclick = () => setAlgo(!document.body.classList.contains('algo-on'));
+$('#aStyle').onchange = e => { ALG.style = e.target.value; saveAlg(); drawAlgo(); };
+document.querySelectorAll('.atab').forEach(t => t.onclick = () => { ALG.view = t.dataset.v; saveAlg(); drawAlgo(); });
+$('#aCopy').onclick = async e => { const sc = curScript(); if (!sc) return; try { await navigator.clipboard.writeText(algoPlain(sc)); e.target.textContent = '✓ Copié'; } catch(_){ e.target.textContent = 'Copie impossible'; } setTimeout(() => e.target.textContent = '📋 Copier', 1500); };
+function settings(){
+  dialog(`<p style="margin:0 0 10px;font-weight:600">⚙ Paramètres</p>
+    <div class="set"><b>Algorigramme</b>
+      <label><input type="radio" name="st" value="classic"> Classique (ellipse, rectangle, losange)</label>
+      <label><input type="radio" name="st" value="sysml"> SysML simplifié (diagramme d'activité)</label></div>
+    <div class="set"><b>Instructions d'entrée et de sortie</b> <span class="muted">(afficher, envoyer un message) dans l'algorigramme classique</span>
+      <label><input type="radio" name="io" value="0"> Toutes les instructions en rectangle</label>
+      <label><input type="radio" name="io" value="1"> Entrées / sorties en parallélogramme</label></div>
+    <div class="row"><button class="pri ok">Fermer</button></div>`, (ov, close) => {
+    ov.querySelector(`input[name=st][value=${ALG.style}]`).checked = true; ov.querySelector(`input[name=io][value="${ALG.io ? 1 : 0}"]`).checked = true;
+    ov.querySelectorAll('input[name=st]').forEach(r => r.onchange = () => { ALG.style = r.value; saveAlg(); drawAlgo(); if (VIEW==='doc') drawDoc(); });
+    ov.querySelectorAll('input[name=io]').forEach(r => r.onchange = () => { ALG.io = r.value==='1'; saveAlg(); drawAlgo(); if (VIEW==='doc') drawDoc(); });
+    ov.querySelector('.ok').onclick = close; });
+}
+$('#bSet').onclick = settings;
+$('#aZm').onclick = () => { S.az = Math.max(.4, (S.az||1) - .1); save(); drawAlgo(); };
+$('#aZp').onclick = () => { S.az = Math.min(2.5, (S.az||1) + .1); save(); drawAlgo(); };
+$('#aImg').onclick = async () => { const sc = curScript(); if (!sc) return; const d = algoSVG(sc); const blob = await toPNG(d, 3); const url = URL.createObjectURL(blob);
+  dialog(`<b>Image de l'algorigramme</b> <span class="muted">(clic droit sur l'image : copier ou enregistrer)</span><img class="cap" src="${url}" style="width:${Math.min(d.w, 860)}px"><div class="row"><button class="cp">📋 Copier l'image</button><button class="dl">⬇ Enregistrer en PNG</button><button class="pri ok">Fermer</button></div>`, (ov, close) => {
+    ov.querySelector('.ok').onclick = close; ov.querySelector('.dl').onclick = () => saveFile('algorigramme.png', blob);
+    ov.querySelector('.cp').onclick = async ev => { try { await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]); ev.target.textContent = '✓ Copiée'; } catch(_){ ev.target.textContent = 'Copie impossible ici'; } }; }); };
+$('#aDoc').onclick = () => { const sc = curScript(); if (!sc) return; S.doc.push({id:nid(), t:'prog', sid:sc.id, mode: ALG.view==='text' ? 'algotext' : 'algo', algoStyle:ALG.style, scale:1, hide:[]}); save(); setView('doc'); };
+$('#aWin').onclick = () => { const w = window.open(location.pathname + '#algo', 'atelier-algo', 'width=900,height=900'); if (!w) note('La fenêtre n\'a pas pu s\'ouvrir (fenêtres bloquées ?). Vous pouvez aussi ouvrir cette adresse dans un autre onglet : ' + location.href.split('#')[0] + '#algo'); };
+// Fenêtre « algorigramme seul » : suit les changements faits dans la fenêtre principale
+if (location.hash==='#algo'){
+  document.body.classList.add('algo-only');
+  addEventListener('storage', e => { if (e.key===KEY && e.newValue){ try { const o = JSON.parse(e.newValue); S = Object.assign(S, o); selected = S.sel; syncProcs(); drawAlgo(); } catch(_){} } if (e.key==='atelier-algo'){ try { Object.assign(ALG, JSON.parse(e.newValue)); drawAlgo(); } catch(_){} } });
 }
 
 /* ═══════════════ Barre d'outils ═══════════════ */
@@ -651,7 +715,7 @@ if (!S.scripts.length && !localStorage.getItem(KEY)){
   const a = make('boutonA'), r = make('repeter'), t = make('aff'), w = make('attendre'); r.f.k0 = '3'; t.f.k0 = 'Bonjour'; r.body.push(t, w);
   S.scripts.push({id:nid(), x:30, y:30, list:[a, r]}); selected = S.scripts[0].id;
 }
-syncProcs(); drawCats(); setView('prog'); draw();
+syncProcs(); drawCats(); setView('prog'); if (S.showAlgo!==false && location.hash!=='#algo') setAlgo(true); draw(); if (location.hash==='#algo'){ selected = S.sel; drawAlgo(); }
 $('#ver').textContent = APP_VERSION;
 $('#ver').onclick = async () => { const v = await majVerifier(); note(v===null ? 'Vérification possible seulement sur le site en ligne, avec une connexion.' : v ? 'Version ' + v + ' disponible : utilisez « Mettre à jour » dans le bandeau.' : 'Vous avez la dernière version (' + APP_VERSION + ').'); };
 

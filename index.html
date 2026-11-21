@@ -29,12 +29,15 @@ label.file input{display:none}
 .sep{width:1px;height:24px;background:#E2E8F0;margin:0 4px}
 /* vues */
 body[data-view="doc"] .only-prog, body[data-view="prog"] .only-doc{display:none !important}
-main{flex:1;display:flex;min-height:0}
+main{flex:1;display:flex;min-height:0;position:relative}
 #cats{width:84px;flex:none;border-right:1px solid #E2E8F0;overflow:auto;background:#fff}
 .cat{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;padding:7px 2px;cursor:pointer;color:#575E75;text-align:center;user-select:none;line-height:1.15}
 .cat i{width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
 .cat:hover{background:#EEF2FA}
-#flyout{width:340px;flex:none;border-right:1px solid #E2E8F0;display:flex;flex-direction:column;background:#F9F9F9;min-height:0}
+#flyout{position:absolute;left:84px;top:0;bottom:0;width:380px;z-index:40;border-right:1px solid #CBD5E1;display:none;flex-direction:column;background:#F9F9F9;min-height:0;box-shadow:8px 0 24px rgba(15,23,42,.18)}
+body.fly-open #flyout{display:flex}
+.cat.on{background:#E0E7FF}
+.cat i.srch{border:none;font-style:normal;font-size:16px;line-height:20px;text-align:center}
 #palq{margin:8px;padding:7px 10px;border:1px solid #CBD5E1;border-radius:8px;font:inherit}
 #palsecs{flex:1;overflow:auto}
 .sec h2{font-size:13.5px;margin:0;padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;color:#475569;position:sticky;top:0;background:#F9F9F9;z-index:1;border-bottom:1px solid #EEF0F3}
@@ -99,6 +102,25 @@ svg text{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600
 .maj-bandeau .maj-plt{border:1px solid rgba(255,255,255,.5);border-radius:8px;background:transparent;color:#fff;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer}
 #ver{font-size:11px;color:#94A3B8;border:none;background:none;padding:2px 4px;cursor:pointer}
 #ver:hover{color:#2563EB;text-decoration:underline}
+#algo{display:none;width:50%;flex:none;border-left:1px solid #E2E8F0;background:#fff;flex-direction:column;min-height:0}
+body.algo-on #algo{display:flex}
+.atools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 8px;border-bottom:1px solid #E2E8F0;background:#F8FAFC;font-size:12px}
+.atools select{font:inherit;padding:4px 6px;border-radius:6px;border:1px solid #CBD5E1}
+.atools label{display:flex;gap:4px;align-items:center}
+#algoName{padding:6px 10px 0}
+#algov{flex:1;overflow:auto;padding:6px}
+#algov svg{display:block}
+svg.algo-svg text{font:13px "Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:400;fill:#1E293B}
+svg.algo-svg text.lab{font-size:12px;font-style:italic}
+svg.algo-svg text.cond{font-size:12px}
+body.algo-only header,body.algo-only #cats,body.algo-only #flyout,body.algo-only #ws,body.algo-only #docview,body.algo-only .no-only{display:none !important}
+body.algo-only #algo{display:flex;width:100%;border:none}
+body.algo-only main{display:flex !important}
+.atab.on{background:#1E293B;color:#fff;border-color:#1E293B}
+.algotxt{font-family:Aptos,"Segoe UI",Calibri,sans-serif;font-size:15px;line-height:1.55;padding:10px 14px;color:#1E293B}
+.algotxt b{font-weight:700;letter-spacing:.02em}
+.set{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
+.set label{display:flex;gap:8px;align-items:center;cursor:pointer}
 </style>
 </head>
 <body data-view="prog">
@@ -112,9 +134,11 @@ svg text{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600
     <button id="bZm" title="Dézoomer">−</button><button id="bZp" title="Zoomer">+</button>
     <button id="bRange" title="Aligner les programmes à gauche, les uns sous les autres">⇤ Ranger</button>
     <button id="bCap" title="Image du programme sélectionné (ou de tous)">📷 Capturer</button>
+    <button id="bAlgo" title="Afficher l'algorigramme du programme sélectionné à côté des blocs">📊 Algorigramme</button>
     <button id="bClr">🗑 Tout effacer</button>
   </span>
   <span class="sp"></span>
+  <button id="bSet" title="Paramètres : style de l'algorigramme, entrées et sorties">⚙</button>
   <button id="bSave" title="Enregistrer les programmes et la fiche dans un fichier">💾 Enregistrer</button>
   <label class="file" title="Ouvrir un projet enregistré">📂 Ouvrir<input type="file" id="fOpen" accept=".json,application/json"></label>
   <button id="ver" title="Version de l'appli : cliquer pour vérifier les mises à jour"></button>
@@ -123,7 +147,21 @@ svg text{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600
   <nav id="cats"></nav>
   <aside id="flyout"><input id="palq" type="search" placeholder="Chercher un bloc : avancer, LED, distance…"><div id="palsecs"></div></aside>
   <section id="ws"><svg id="wsv"></svg><div id="empty">Glissez des blocs ici pour construire un programme.</div>
-    <div id="hint">Glisser : construire · Clic dans la palette : ajouter au programme sélectionné · Clic droit sur un bloc : dupliquer, noir et blanc, fiche, image · Bloc relâché sur la palette : supprimé · Fond : déplacer la vue (molette aussi, Ctrl+molette = zoom)</div></section>
+    <div id="hint" class="hint-ws">Clic sur une catégorie (à gauche) : ses blocs s'ouvrent ; glisser un bloc ou cliquer dessus pour l'ajouter · Clic droit sur un bloc : texte de l'algorigramme, dupliquer, noir et blanc, fiche · Bloc relâché sur les catégories : supprimé · Fond : déplacer la vue (molette, Ctrl+molette = zoom)</div></section>
+  <section id="algo">
+    <div class="atools">
+      <select id="aStyle" title="Style de l'algorigramme"><option value="classic">Classique</option><option value="sysml">SysML simplifié</option></select>
+      <button class="atab" data-v="chart">📊 Algorigramme</button><button class="atab" data-v="text">📝 Algorithme</button>
+      <button id="aZm" title="Réduire">−</button><button id="aZp" title="Agrandir">+</button>
+      <span style="flex:1"></span>
+      <button id="aCopy" title="Copier l'algorithme (texte)">📋 Copier</button>
+      <button id="aImg" title="Image de l'algorigramme">📷</button>
+      <button id="aDoc" title="Ajouter l'algorigramme à la fiche">📄 Fiche</button>
+      <button id="aWin" class="no-only" title="Ouvrir l'algorigramme dans une autre fenêtre (deuxième écran, projection)">🖥 Autre fenêtre</button>
+    </div>
+    <div id="algoName" class="muted"></div>
+    <div id="algov"></div>
+  </section>
 </main>
 <section id="docview" class="only-doc">
   <div id="doctools">
@@ -140,6 +178,7 @@ svg text{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600
 <script src="docx.iife.js"></script>
 <script>if (!window.docx){ const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/docx@9.16.0/dist/index.iife.js'; document.head.append(s); }</script>
 <script src="catalogue.js"></script>
+<script src="algo.js"></script>
 <script src="app.js"></script>
 <script>if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !/claude|claudeusercontent/.test(location.host)) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>
