@@ -125,7 +125,12 @@ let ST = 'classic', CTR = 0;
 const line = (pts, arrow = true) => `<path d="M ${pts.map(p => p.join(' ')).join(' L ')}" fill="none" stroke="${INK}" stroke-width="1.4"${arrow ? ' marker-end="url(#af-arr)"' : ''}/>`;
 const labg = (g, x, y, t, anchor = 'start') => { if (ST==='sysml'){ if (!g) return ''; t = '[' + (t==='oui' ? g.yes : g.no) + ']'; } return lab(x, y, t, anchor); };
 const lab = (x, y, t, anchor = 'start') => `<text x="${x}" y="${y}" text-anchor="${anchor}" class="lab">${aesc(t)}</text>`;
-const mergeMark = (x, y) => ST==='sysml' ? `<path d="M ${x} ${y-9} L ${x+9} ${y} L ${x} ${y+9} L ${x-9} ${y} z" fill="#fff" stroke="${INK}" stroke-width="1.4"/>` : '';
+const MR = 15;   // demi-taille des losanges SysML (décision et fusion : même taille)
+const mR = () => ST==='sysml' ? MR : 0;
+const mergeMark = (x, y) => ST==='sysml' ? `<path d="M ${x} ${y-MR} L ${x+MR} ${y} L ${x} ${y+MR} L ${x-MR} ${y} z" fill="#fff" stroke="${INK}" stroke-width="1.6"/>` : '';
+// entrée d'une boucle : T = hauteur avant le losange de test, mc = centre du losange de fusion
+const loopTop = () => ST==='sysml' ? {T: 2*MR + 40, mc: MR + 8} : {T: 20, mc: 10};
+const loopIn = (cx, y, T, mc) => ST==='sysml' ? line([[cx, y], [cx, y+mc-MR]], false) + mergeMark(cx, y+mc) + line([[cx, y+mc+MR], [cx, y+T-1]]) : line([[cx, y], [cx, y+T]], false);
 
 function boxFrag(kind, text){
   const lines = wrap(text, kind==='term' ? 32 : 24); const tw0 = Math.max(...lines.map(atw));
@@ -181,13 +186,13 @@ const dLeft = D => D.w/2;
 function ifFrag(cond, body, g){
   const D = diamond(cond), B = body;
   const L = Math.max(dLeft(D), B.cx), R = Math.max(D.w/2 + gw(g,'no') + 4, B.w - B.cx, gw(g,'yes') + 6) + 34;
-  const yB = D.h + G, yJ = yB + B.h + (B.empty ? 0 : G/2) + 10, h = yJ + G/2 + 6;
+  const yB = D.h + G, yJ = yB + B.h + (B.empty ? 0 : G/2) + 10 + mR(), h = yJ + G/2 + 6 + mR();
   return {w:L+R, h, cx:L, exit:true, draw:(x, y) => { const cx = x+L; let s = D.draw(cx, y);
-    if (!B.empty){ s += line([[cx, y+D.h], [cx, y+yB-1]]) + labg(g, cx+6, y+D.h+14, 'oui') + B.draw(cx - B.cx, y+yB); if (B.exit) s += line([[cx, y+yB+B.h], [cx, y+yJ]], false); }
-    else s += line([[cx, y+D.h], [cx, y+yJ]], false) + labg(g, cx+6, y+D.h+14, 'oui');
+    if (!B.empty){ s += line([[cx, y+D.h], [cx, y+yB-1]]) + labg(g, cx+6, y+D.h+14, 'oui') + B.draw(cx - B.cx, y+yB); if (B.exit) s += line([[cx, y+yB+B.h], [cx, y+yJ-mR()-(ST==='sysml'?1:0)]], ST==='sysml'); }
+    else s += line([[cx, y+D.h], [cx, y+yJ-mR()-(ST==='sysml'?1:0)]], ST==='sysml') + labg(g, cx+6, y+D.h+14, 'oui');
     const xr = x + L + R - 6;
-    s += line([[cx + D.w/2, y + D.h/2], [xr, y + D.h/2], [xr, y+yJ], [cx + 2, y+yJ]]) + labg(g, cx + D.w/2 + 6, y + D.h/2 - 6, 'non');
-    s += mergeMark(cx, y+yJ) + line([[cx, y+yJ + (ST==='sysml' ? 9 : 0)], [cx, y+h]], false);
+    s += line([[cx + D.w/2, y + D.h/2], [xr, y + D.h/2], [xr, y+yJ], [cx + 2 + mR(), y+yJ]]) + labg(g, cx + D.w/2 + 6, y + D.h/2 - 6, 'non');
+    s += mergeMark(cx, y+yJ) + line([[cx, y+yJ + mR()], [cx, y+h]], false);
     return s; }};
 }
 // si … alors … sinon
@@ -195,42 +200,42 @@ function ifElseFrag(cond, A, B, g){
   const D = diamond(cond);
   const dxA = Math.max(D.w/2 + 16, D.w/2 + gw(g,'yes') + 14, (A.w - A.cx) + 18), dxB = Math.max(D.w/2 + 16, D.w/2 + gw(g,'no') + 14, B.cx + 18);
   const L = Math.max(dLeft(D), dxA + A.cx), R = Math.max(D.w/2, dxB + (B.w - B.cx));
-  const yT = D.h/2 + G + 4, yJ = yT + Math.max(A.h, B.h) + G/2 + 6, h = yJ + G/2 + 6;
+  const yT = D.h/2 + G + 4, yJ = yT + Math.max(A.h, B.h) + G/2 + 6, h = yJ + G/2 + 6 + mR();
   return {w:L+R, h, cx:L, exit:A.exit || B.exit, draw:(x, y) => { const cx = x+L, xa = cx - dxA, xb = cx + dxB; let s = D.draw(cx, y);
     s += line([[cx - D.w/2, y + D.h/2], [xa, y + D.h/2], [xa, y + yT - 1]], !A.empty) + labg(g, cx - D.w/2 - 6, y + D.h/2 - 6, 'oui', 'end');
     s += line([[cx + D.w/2, y + D.h/2], [xb, y + D.h/2], [xb, y + yT - 1]], !B.empty) + labg(g, cx + D.w/2 + 6, y + D.h/2 - 6, 'non');
     if (!A.empty) s += A.draw(xa - A.cx, y + yT); if (!B.empty) s += B.draw(xb - B.cx, y + yT);
-    if (A.exit) s += line([[xa, y + yT + A.h], [xa, y + yJ], [cx - 2, y + yJ]], ST!=='sysml');
-    if (B.exit) s += line([[xb, y + yT + B.h], [xb, y + yJ], [cx + 2, y + yJ]], ST!=='sysml');
-    s += mergeMark(cx, y+yJ) + line([[cx, y + yJ + (ST==='sysml' ? 9 : 0)], [cx, y + h]], false);
+    if (A.exit) s += line([[xa, y + yT + A.h], [xa, y + yJ], [cx - 2 - mR(), y + yJ]]);
+    if (B.exit) s += line([[xb, y + yT + B.h], [xb, y + yJ], [cx + 2 + mR(), y + yJ]]);
+    s += mergeMark(cx, y+yJ) + line([[cx, y + yJ + mR()], [cx, y + h]], false);
     return s; }};
 }
 // boucle avec test en tête : bodyOn = 'oui' ou 'non' (la branche qui entre dans le corps)
 function loopFrag(cond, body, bodyOn, g){
   const D = diamond(cond), B = body.empty ? {w:0, h:0, cx:0, exit:true, empty:true, draw:() => ''} : body;
-  const T = ST==='sysml' ? 40 : 20, L = Math.max(dLeft(D), B.cx) + 26, R = Math.max(D.w/2 + gw(g, bodyOn==='oui' ? 'no' : 'yes') + 4, B.w - B.cx, gw(g, bodyOn==='oui' ? 'yes' : 'no') + 6) + 34;
+  const {T, mc} = loopTop(), L = Math.max(dLeft(D), B.cx) + 26 + mR(), R = Math.max(D.w/2 + gw(g, bodyOn==='oui' ? 'no' : 'yes') + 4, B.w - B.cx, gw(g, bodyOn==='oui' ? 'yes' : 'no') + 6) + 34;
   const yB = T + D.h + G, yb = yB + B.h, h = yb + 14 + G + 6;
   return {w:L+R, h, cx:L, exit:true, draw:(x, y) => { const cx = x+L, xl = x + 8, xr = x + L + R - 6; let s = '';
-    s += line([[cx, y], [cx, y+T]], false) + mergeMark(cx, y + T/2);
+    s += loopIn(cx, y, T, mc);
     s += D.draw(cx, y+T) + line([[cx, y+T+D.h], [cx, y+yB-1]], B.empty ? false : true) + labg(g, cx+6, y+T+D.h+14, bodyOn);
     s += B.draw(cx - B.cx, y+yB);
-    s += line([[cx, y+yb], [cx, y+yb+14], [xl, y+yb+14], [xl, y + T/2], [cx - (ST==='sysml' ? 10 : 2), y + T/2]]);
+    s += line([[cx, y+yb], [cx, y+yb+14], [xl, y+yb+14], [xl, y + mc], [cx - 2 - mR(), y + mc]]);
     s += line([[cx + D.w/2, y+T+D.h/2], [xr, y+T+D.h/2], [xr, y+yb+14+G/2+4], [cx, y+yb+14+G/2+4], [cx, y+h]]) + labg(g, cx + D.w/2 + 6, y+T+D.h/2 - 6, bodyOn==='oui' ? 'non' : 'oui');
     return s; }};
 }
 // attendre jusqu'à : le losange reboucle sur lui-même
 function waitFrag(cond, g){
-  const D = diamond(cond), T = ST==='sysml' ? 40 : 20, L = Math.max(dLeft(D), D.w/2 + gw(g,'no') + 14) + 26, R = Math.max(D.w/2, gw(g,'yes') + 6) + 10, h = T + D.h + G;
-  return {w:L+R, h, cx:L, exit:true, draw:(x, y) => { const cx = x+L, xl = x + 8; let s = line([[cx, y], [cx, y+T]], false) + mergeMark(cx, y + T/2) + D.draw(cx, y+T);
-    s += line([[cx - D.w/2, y+T+D.h/2], [xl, y+T+D.h/2], [xl, y+T/2], [cx - (ST==='sysml' ? 10 : 2), y+T/2]]) + labg(g, cx - D.w/2 - 6, y+T+D.h/2 + 15, 'non', 'end');
+  const D = diamond(cond), {T, mc} = loopTop(), L = Math.max(dLeft(D), D.w/2 + gw(g,'no') + 14) + 26, R = Math.max(D.w/2, gw(g,'yes') + 6) + 10, h = T + D.h + G;
+  return {w:L+R, h, cx:L, exit:true, draw:(x, y) => { const cx = x+L, xl = x + 8; let s = loopIn(cx, y, T, mc) + D.draw(cx, y+T);
+    s += line([[cx - D.w/2, y+T+D.h/2], [xl, y+T+D.h/2], [xl, y+mc], [cx - 2 - mR(), y+mc]]) + labg(g, cx - D.w/2 - 6, y+T+D.h/2 + 15, 'non', 'end');
     s += line([[cx, y+T+D.h], [cx, y+h]], false) + labg(g, cx+6, y+T+D.h+14, 'oui');
     return s; }};
 }
 // pour toujours : retour au début du corps, pas de sortie
 function foreverFrag(body){
-  const B = body.empty ? boxFrag('act', '(rien)') : body, T = ST==='sysml' ? 40 : 20, L = B.cx + 26, R = B.w - B.cx + 10, h = T + B.h + 18;
-  return {w:L+R, h, cx:L, exit:false, draw:(x, y) => { const cx = x+L, xl = x + 8; let s = line([[cx, y], [cx, y+T]], false) + mergeMark(cx, y + T/2) + B.draw(cx - B.cx, y+T);
-    s += line([[cx, y+T+B.h], [cx, y+T+B.h+12], [xl, y+T+B.h+12], [xl, y+T/2], [cx - (ST==='sysml' ? 10 : 2), y+T/2]]);
+  const B = body.empty ? boxFrag('act', '(rien)') : body, {T, mc} = loopTop(), L = Math.max(B.cx, mR()) + 26, R = B.w - B.cx + 10, h = T + B.h + 18;
+  return {w:L+R, h, cx:L, exit:false, draw:(x, y) => { const cx = x+L, xl = x + 8; let s = loopIn(cx, y, T, mc) + B.draw(cx - B.cx, y+T);
+    s += line([[cx, y+T+B.h], [cx, y+T+B.h+12], [xl, y+T+B.h+12], [xl, y+mc], [cx - 2 - mR(), y+mc]]);
     return s; }};
 }
 

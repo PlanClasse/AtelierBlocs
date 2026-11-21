@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 'v1.5.4';
+const APP_VERSION = 'v1.5.5';
 const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
