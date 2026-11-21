@@ -1,3 +1,4 @@
 dev/
 *.json
 *.docx
+!manifest.json

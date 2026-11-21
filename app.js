@@ -50,15 +50,16 @@ const save = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { local
 
 /* ---------- Mes blocs : définitions créées par l'utilisateur ---------- */
 const HIDE_PAL = new Set(['defBloc','appelBloc']);
-const PT = {n:'nombre', s:'texte', b:'booléen'};
+const PT = {n:'nombre', s:'texte', b:'booléen', l:'libellé'};
 function syncProcs(){
   for (const id of Object.keys(DEF)) if (/^p(def|call|arg)_/.test(id)) delete DEF[id];
   for (const pr of S.procs||[]){
+    pr.params.forEach((p,i) => { if (!p.id) p.id = String(i); });
     DEF['pdef_'+pr.id] = {id:'pdef_'+pr.id, cat:'mes', sh:'hat', icon:false, txt:'définir '+pr.name+' '+pr.params.map(p=>p.name).join(' '),
-      rows:[['définir', {t:'pname', v:pr.name}, ...pr.params.map(p => ({t:'pparam', pt:p.t, v:p.name}))]]};
-    DEF['pcall_'+pr.id] = {id:'pcall_'+pr.id, cat:'mes', sh:'stack', icon:false, txt:pr.name,
-      rows:[[pr.name, ...pr.params.map((p,i) => ({t:p.t, k:'p'+i, v:''}))]]};
-    pr.params.forEach((p,i) => { DEF['parg_'+pr.id+'_'+i] = {id:'parg_'+pr.id+'_'+i, cat:'mes', sh:p.t==='b' ? 'bool' : 'rep', icon:false, txt:p.name, rows:[[p.name]]}; });
+      rows:[['définir', {t:'pname', v:pr.name}, ...pr.params.map(p => p.t==='l' ? p.name : {t:'pparam', pt:p.t, v:p.name})]]};
+    DEF['pcall_'+pr.id] = {id:'pcall_'+pr.id, cat:'mes', sh:'stack', icon:false, txt:pr.name+' '+pr.params.filter(p=>p.t==='l').map(p=>p.name).join(' '),
+      rows:[[pr.name, ...pr.params.map(p => p.t==='l' ? p.name : {t:p.t, k:'p_'+p.id, v:''})]]};
+    pr.params.forEach(p => { if (p.t!=='l') DEF['parg_'+pr.id+'_'+p.id] = {id:'parg_'+pr.id+'_'+p.id, cat:'mes', sh:p.t==='b' ? 'bool' : 'rep', icon:false, txt:p.name, rows:[[p.name]]}; });
   }
 }
 const MISSING = {cat:'mes', sh:'stack', icon:false, txt:'bloc supprimé', rows:[['bloc supprimé']]};
@@ -253,7 +254,7 @@ function palBlocks(c){
   }
   return out;
 }
-const procBlocks = pr => [make('pdef_'+pr.id), make('pcall_'+pr.id), ...pr.params.map((p,i) => make('parg_'+pr.id+'_'+i))];
+const procBlocks = pr => [make('pdef_'+pr.id), make('pcall_'+pr.id), ...pr.params.filter(p => p.t!=='l').map(p => make('parg_'+pr.id+'_'+p.id))];
 function palSvg(blocks, Z){
   const o = newOut({pal:true}); let y = 6;
   for (const b of blocks){ const L = lay(b, o); renderBlock(b, 0, y, o); y += L.h + (['rep','bool'].includes(DEF[b.type].sh) ? 10 : 14); }
@@ -264,9 +265,9 @@ function procDialog(pr){
   const isNew = !pr; const f = pr ? JSON.parse(JSON.stringify(pr)) : {id:nid(), name:'', params:[]};
   dialog(`<p style="margin:0 0 8px;font-weight:600">${isNew ? 'Créer un bloc' : 'Modifier le bloc'}</p>
     <label class="muted">Nom du bloc</label><input class="pnm" style="width:100%;font:inherit;padding:8px;border:1px solid #CBD5E1;border-radius:8px;margin:4px 0 10px">
-    <div class="muted">Paramètres (facultatif) : un nombre, un texte ou un booléen (vrai ou faux), autant que nécessaire.</div>
+    <div class="muted">Paramètres (facultatif) : un nombre, un texte ou un booléen (vrai ou faux), autant que nécessaire. Un libellé ajoute du texte fixe entre les paramètres (par exemple « fois »).</div>
     <div class="plist" style="display:flex;flex-direction:column;gap:6px;margin:8px 0"></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="add" data-t="n">+ Nombre</button><button class="add" data-t="s">+ Texte</button><button class="add" data-t="b">+ Booléen</button></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="add" data-t="n">+ Nombre</button><button class="add" data-t="s">+ Texte</button><button class="add" data-t="b">+ Booléen</button><button class="add" data-t="l">+ Libellé</button></div>
     <div class="row"><button class="no">Annuler</button><button class="pri ok">${isNew ? 'Créer' : 'Enregistrer'}</button></div>`, (ov, close) => {
     const nm = ov.querySelector('.pnm'), pl = ov.querySelector('.plist'); nm.value = f.name; nm.focus();
     const drawP = () => { pl.innerHTML = ''; f.params.forEach((p, i) => { const r = document.createElement('div'); r.style.cssText = 'display:flex;gap:6px;align-items:center';
@@ -275,7 +276,8 @@ function procDialog(pr){
       up.onclick = () => { if (i){ [f.params[i-1], f.params[i]] = [f.params[i], f.params[i-1]]; drawP(); } }; del.onclick = () => { f.params.splice(i, 1); drawP(); };
       pl.append(r); }); };
     drawP();
-    ov.querySelectorAll('.add').forEach(bt => bt.onclick = () => { const t = bt.dataset.t; let n = 1; while (f.params.some(p => p.name===PT[t]+n)) n++; f.params.push({t, name:PT[t]+n}); drawP(); });
+    ov.querySelectorAll('.add').forEach(bt => bt.onclick = () => { const t = bt.dataset.t; let n = 1; while (f.params.some(p => p.name===PT[t]+n)) n++;
+      f.params.push({t, id:nid(), name: t==='l' ? 'texte' : PT[t]+n}); drawP(); const ins = pl.querySelectorAll('input'); const last = ins[ins.length-1]; if (last){ last.focus(); last.select(); } });
     ov.querySelector('.no').onclick = close;
     ov.querySelector('.ok').onclick = () => { f.name = nm.value.trim(); if (!f.name){ nm.focus(); return; } f.params.forEach((p,i) => { p.name = (p.name||'').trim() || PT[p.t]+(i+1); });
       if (isNew) S.procs.push(f); else { const old = S.procs.find(x => x.id===f.id); Object.assign(old, f); }
@@ -418,6 +420,7 @@ $('#wsv').addEventListener('contextmenu', e => {
     [b.bw ? '🎨 Remettre ce bloc en couleur' : '◐ Ce bloc en noir et blanc', () => { b.bw = !b.bw; draw(); }],
     ['◐ Tout le programme en noir et blanc', () => { walk(sc.list, x => x.bw = true); draw(); }],
     ['🎨 Tout le programme en couleur', () => { walk(sc.list, x => delete x.bw); draw(); }],
+    ...(/^p(def|call|arg)_/.test(b.type) ? [['✏ Modifier ce bloc (nom, libellés, paramètres)', () => { const pr = (S.procs||[]).find(x => b.type.split('_')[1]===x.id); if (pr) procDialog(pr); }]] : []),
     ['📄 Ajouter ce programme à la fiche', () => { addProgToDoc(sc.id); }],
     ['📷 Image de ce programme', () => { selected = sc.id; capture(); }],
     ['🗑 Supprimer ce bloc', () => { if (ref.type==='list') ref.list.splice(ref.i, 1); else delete ref.parent.in[ref.k]; cleanScripts(); draw(); }],
