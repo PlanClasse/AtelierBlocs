@@ -1,6 +1,6 @@
 'use strict';
-const APP_VERSION = 'v1.11.0';
-const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './import.js', './accueil.js', './ui.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
+const APP_VERSION = 'v1.12.0';
+const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -109,6 +109,7 @@ function colors(b, o){ const c = CATS[DEF[b.type].cat];
 /* ---------- Mesure ---------- */
 function itemSize(p, b, o){
   if (typeof p==='string') return {w:tw(p), h:16};
+  if (p.t==='trou') return trouSize(p, b, o);
   const ch = b.in && b.in[p.k];
   if ((p.t==='n' || p.t==='s' || p.t==='b') && ch && !o.noChildren){ const L = lay(ch, o); return {w:L.w, h:L.h, child:ch}; }
   if (p.t==='n' || p.t==='s'){ const v = o.blankV ? '' : String(b.f[p.k] ?? ''); return {w:Math.max(40, tw(v)+22), h:FH, v}; }
@@ -126,9 +127,10 @@ function itemSize(p, b, o){
 function lay(b, o){
   if (!DEF[b.type]) DEF[b.type] = {...MISSING, id:b.type};
   const d = DEF[b.type], sh = d.sh, rep = sh==='rep' || sh==='bool';
-  const rows = d.rows.map((row, ri) => {
+  const rows = d.rows.map((row0, ri) => {
+    const exo = ri===0 && o.exo && aTrous(b), row = exo ? exoRow(row0, b) : row0;   // exercice : trous à la place de certaines parties
     let x = rep ? (sh==='bool' ? 14 : 10) : 8, mh = 16; const items = [];
-    if (ri===0 && d.icon){ items.push({icon:true, x, w:26, h:16}); x += 26 + 8; }
+    if (ri===0 && d.icon && !(exo && (b.tr.ligne || (b.tr.p || {}).nom))){ items.push({icon:true, x, w:26, h:16}); x += 26 + 8; }
     row.forEach((p, n) => { if (n || items.length) x += (typeof p==='string' && typeof row[n-1]==='string') ? 4 : 6;
       const s = itemSize(p, b, o); items.push({p, x, ...s}); x += s.w; mh = Math.max(mh, s.h); });
     const h = rep ? Math.max(40, mh + 8) : Math.max(48, mh + 16);
@@ -168,9 +170,10 @@ function drawItems(b, row, top, rowH, x0, y0, col, o, kids){
   for (const it of row.items){
     if (it.icon){ s += `<g transform="translate(${it.x},${cy-7})">${ICONS[CATS[DEF[b.type].cat].ic || 'cyber'](col.icon)}</g>`; continue; }
     const p = it.p;
+    if (p.t==='trou'){ s += trouSVG(it, p, cy, b, o); continue; }
     if (typeof p==='string'){ s += `<text x="${it.x}" y="${cy+4}" fill="${col.text}">${esc(p)}</text>`; continue; }
     if (p.t==='ico'){ s += `<g transform="translate(${it.x},${cy-12})">${(TICONS[p.v] || TICONS.flag)(col, col.icon!=='#fff')}</g>`; continue; }
-    const live = o.live ? ` data-k="${p.k}"` : '';
+    const live = o.live || o.pick ? ` data-k="${p.k}"` : '';
     if (it.child){ kids.push([it.child, x0 + it.x, y0 + cy - it.h/2]);
       if (o.snaps) o.snaps.push({kind:'in', b, k:p.k, bool:p.t==='b', x:x0+it.x, y:y0+cy}); continue; }
     if (o.snaps && (p.t==='n' || p.t==='s' || p.t==='b')) o.snaps.push({kind:'in', b, k:p.k, bool:p.t==='b', x:x0+it.x, y:y0+cy});
@@ -207,6 +210,7 @@ function renderBlock(b, x, y, o){
   if (LOOP_IDS.has(b.type)) inner += ARROW(L.w - 28, L.h - BOT + 7, col.icon);
   const cls = o.live ? ` class="blk${o.sel && o.sel.has(b.id) ? ' sel' : ''}" data-bid="${b.id}"` : (o.pal ? ` class="blk pal" data-type="${b.type}"${b.f && DEF[b.type].rows[0].some(p=>p.t==='vname') ? ` data-name="${esc(Object.values(b.f)[0])}"` : ''}` : (o.pick ? ` class="pk" data-bid="${b.id}"` : ''));
   o.svg += `<g${cls} transform="translate(${x},${y})"><path d="${path}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1"/>${inner}</g>`;
+  if (o.live && aTrous(b)) o.svg += `<g transform="translate(${x + L.w - 4},${y + 2})" style="pointer-events:none"><circle r="9" fill="#EA580C" stroke="#fff" stroke-width="1.5"/><text y="4" text-anchor="middle" fill="#fff" style="font-size:10px;font-weight:800">?</text></g>`;
   const bt = sh==='hat' ? 2 : 0;
   o.box.x1 = Math.min(o.box.x1, x); o.box.y1 = Math.min(o.box.y1, y + bt);
   o.box.x2 = Math.max(o.box.x2, x + L.w); o.box.y2 = Math.max(o.box.y2, y + L.h + (['rep','bool','cap','capc'].includes(sh) ? 0 : 8));
@@ -445,6 +449,7 @@ $('#wsv').addEventListener('contextmenu', e => {
     ...(COND_T.includes(b.type) ? [['✏ Textes du test (losange et chemins)…', () => guardDialog(b)]] : [['✏ Texte dans l\'algorigramme et l\'algorithme…', () => { const sh = DEF[b.type].sh, txtOf = () => sh==='hat' ? hatText(b) : (sh==='rep' || sh==='bool') ? valText(b) : blockText(b); const cur = b.alg || txtOf();
       ask('Formulation de ce bloc dans l\'algorigramme et l\'algorithme (vide : formulation automatique)', cur, v => { v = v.trim(); const auto = (() => { const a = b.alg; delete b.alg; const t = txtOf(); if (a) b.alg = a; return t; })();
         if (!v || v===auto){ delete b.alg; delete b.asrc; } else { b.alg = v; b.asrc = auto; } draw(); }); }]]),
+    ['✏️ Trou d\'exercice…', () => { const k = e.target.closest('[data-k]'); trouDialog(b, k ? k.dataset.k : null); }],
     ['📄 Ajouter ce programme à la fiche', () => { addProgToDoc(sc.id); }],
     ['📷 Image de ce programme', () => { selected = sc.id; capture(); }],
     ['🗑 Supprimer ce bloc', () => { if (ref.type==='list') ref.list.splice(ref.i, 1); else delete ref.parent.in[ref.k]; cleanScripts(); draw(); }],
@@ -566,7 +571,7 @@ async function saveFile(name, data){
 function addProgToDoc(sid){ S.doc.push({id:nid(), t:'prog', sid, mode:'assemble', shuffle:true, seed:Math.floor(Math.random()*1e6), blankV:false, blankD:false, bw:false, scale:1, hide:[]}); save(); setView('doc'); }
 function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function explode(list){ const out = [];
-  const strip = b => { const c = {id:b.id, type:b.type, f:{...b.f}, in:{}}; if (b.bw) c.bw = true; if (b.body) c.body = []; if (b.body2) c.body2 = []; return c; };
+  const strip = b => { const c = {id:b.id, type:b.type, f:{...b.f}, in:{}}; if (b.bw) c.bw = true; if (b.tr) c.tr = b.tr; if (b.body) c.body = []; if (b.body2) c.body2 = []; return c; };
   const rec = b => { out.push(strip(b)); Object.values(b.in||{}).forEach(rec); (b.body||[]).forEach(rec); (b.body2||[]).forEach(rec); };
   list.forEach(rec); return out; }
 function instrOf(it, sc){ let ins = explode(sc.list); if (it.shuffle){ const r = rng(it.seed); for (let i=ins.length-1;i>0;i--){ const j = Math.floor(r()*(i+1)); [ins[i], ins[j]] = [ins[j], ins[i]]; } } return ins; }
@@ -574,7 +579,7 @@ const progLabel = sc => { const f = sc.list[0]; if (!f) return 'Programme vide';
 const PXK = 0.62;  // taille des images dans le document (1 = taille écran)
 function itemImages(it){ // [{doc, id}] pour l'aperçu et l'export
   const sc = S.scripts.find(s => s.id===it.sid); if (!sc) return null;
-  const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true};
+  const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true, pick:it.mode==='assemble', exo: it.trous!==false && progATrous(sc) ? exoCtx(sc, it) : null};
   if (it.mode==='assemble'){ const o = newOut(opt); renderList(sc.list, 0, 0, o); return [{doc:svgDoc(o, 2)}]; }
   if (it.mode==='algo'){ const st = ALG.style; if (it.algoStyle) ALG.style = it.algoStyle; const d = algoSVG(sc, 6); ALG.style = st; return d ? [{doc:d, algo:true}] : []; }
   return instrOf(it, sc).map(b => { const o = newOut(opt); renderBlock(b, 0, 0, o); return {doc:svgDoc(o, 2), id:b.id}; });
@@ -624,7 +629,11 @@ function drawDoc(){
           sp.onclick = () => { const s = new Set(it.hide||[]); s.has(im.id) ? s.delete(im.id) : s.add(im.id); it.hide = [...s]; save(); drawDoc(); }; }
         view.append(sp); }
       if (it.mode==='line' || it.mode==='lines') opts.insertAdjacentHTML('beforeend', '<span class="muted" style="width:100%">Cliquez sur une instruction pour la cacher (elle n\'ira pas dans le document).</span>');
+      if (it.mode==='assemble'){ opts.insertAdjacentHTML('beforeend', '<span class="muted" style="width:100%">Cliquez sur une instruction, ou sur une de ses valeurs, pour y faire un trou d\'exercice.</span>');
+        view.style.cursor = 'pointer'; view.onclick = e => { const g = e.target.closest('[data-bid]'); if (!g) return; const ref = locate(g.dataset.bid, [sc.list]); if (!ref) return; const k = e.target.closest('[data-k]'); trouDialog(blockAt(ref), k ? k.dataset.k : null); }; }
+      if (progATrous(sc)){ const tc = chk('Trous', 'trous', 'Afficher les trous d\'exercice de ce programme'); tc.querySelector('input').checked = it.trous!==false; opts.append(tc); }
       box.append(tools, opts, view);
+      if (it.trous!==false && progATrous(sc)) box.insertAdjacentHTML('beforeend', exoHTML(it, sc));
     }
     page.append(box);
   });
@@ -666,13 +675,14 @@ async function exportDocx(){
         if (it.mode==='lines') runs.forEach(r => children.push(new Paragraph({spacing:{after:60}, children:r})));
         else if (it.mode==='line'){ const ch = []; runs.forEach((r, n) => { if (n) ch.push(new TextRun({text:'    '})); ch.push(...r); }); children.push(new Paragraph({spacing:{after:120}, children:ch})); }
         else children.push(new Paragraph({spacing:{before:60, after:120}, children:runs.flat()}));
+        { const sc = S.scripts.find(s => s.id===it.sid); if (sc && it.trous!==false && progATrous(sc)) exoDocx(it, sc, children, window.docx); }
       }
     }
     if (!children.length) children.push(new Paragraph({children:[]}));
     const docu = new Document({creator:'Atelier blocs', styles:{default:{document:{run:{font:'Aptos', size:24}}}},
       sections:[{properties:{page:{size:{width:11906, height:16838}, margin:{top:567, right:567, bottom:567, left:567}}}, children}]});
     const blob = await Packer.toBlob(docu);
-    await saveFile(($('#dname').value.trim() || 'Fiche programmation') + '.docx', blob);
+    await saveFile(($('#dname').value.trim() || 'Fiche programmation') + (CORR ? ' - corrigé' : '') + '.docx', blob);
   } catch(e){ console.error(e); note('Erreur pendant la création du document : ' + e.message); }
   btn.disabled = false; btn.textContent = '⬇ Exporter en .docx';
 }

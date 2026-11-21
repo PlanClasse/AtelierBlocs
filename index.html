@@ -154,6 +154,15 @@ body.algo-only main{display:flex !important}
 .menu div.msep{height:1px;background:#E2E8F0;margin:5px 6px;padding:0;cursor:default}
 .menu div.mh{font-size:11px;color:#64748B;font-weight:700;padding:6px 12px 2px;cursor:default}
 .menu div.msep:hover,.menu div.mh:hover{background:none}
+/* exercices à trous */
+.exo-props{font-family:Aptos,"Segoe UI",Calibri,sans-serif;font-size:15px;line-height:1.9;margin:4px 0 8px 6px}
+.exo-t{border-collapse:collapse;font-size:13px}
+.exo-t th{font-size:12px;color:#64748B;text-align:left;padding:4px 6px;border-bottom:1px solid #E2E8F0}
+.exo-t td{padding:5px 6px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+.exo-t input,.exo-t select{font:inherit;padding:4px 6px;border:1px solid #CBD5E1;border-radius:6px}
+.exo-t tr.exo-off td:not(:first-child){opacity:.4}
+.exo-t tr.exo-focus td{background:#FFF7ED}
+body.corrige #page{outline:3px solid #93C5FD;outline-offset:-3px}
 /* accueil */
 #accueil{position:fixed;inset:0;z-index:9000;overflow:auto;background:#F8FAFC;color:#1E293B}
 #accueil[hidden]{display:none}
@@ -293,6 +302,7 @@ body.acc-on{overflow:hidden}
     <button id="aBreak">+ Saut de page</button>
     <span style="flex:1"></span>
     <input id="dname" placeholder="Nom du fichier" value="Fiche programmation">
+    <label title="Afficher et exporter la version corrigée : réponses dans les trous, barème" style="display:flex;gap:6px;align-items:center;font-size:13px;cursor:pointer;border:1px solid #CBD5E1;border-radius:8px;padding:6px 10px;background:#fff"><input type="checkbox" id="cCorr" style="min-width:0;padding:0"> Corrigé</label>
     <button id="bDocx" class="pri">⬇ Exporter en .docx</button>
   </div>
   <div id="page"></div>
@@ -374,7 +384,7 @@ body.acc-on{overflow:hidden}
     <div class="acc-carte"><i style="background:#FF6680"></i><h3>Créer mes blocs</h3><p>Des blocs personnalisés, avec paramètres.</p><button type="button" data-go="mesblocs">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#16A34A"></i><h3>Importer un projet</h3><p>Un fichier Scratch (.sb3) ou mBlock (.mblock).</p><button type="button" data-go="importer">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#0D9488"></i><h3>Exporter vers Scratch ou mBlock</h3><p>Pour ouvrir les programmes dans Scratch ou les téléverser dans le robot.</p><button type="button" data-go="exporter">Ouvrir</button></div>
-    <div class="acc-carte"><i style="background:#C2410C"></i><h3>Évaluation à trous <span class="acc-tag">Bientôt</span></h3><p>Des cases vides à compléter, avec la version corrigée.</p><button type="button" class="acc-bt" data-go="bientot">Découvrir</button></div>
+    <div class="acc-carte"><i style="background:#C2410C"></i><h3>Exercice à trous</h3><p>Valeurs, instruction ou ligne entière à trouver ; réponse à écrire ou au choix ; corrigé et barème.</p><button type="button" data-go="trous">Ouvrir</button></div>
   </div>
   <div class="acc-pied">
     <span>Ou bien <a href="#" data-go="complet">ouvrez l'atelier complet</a>, avec tous les outils.</span>
@@ -387,6 +397,7 @@ body.acc-on{overflow:hidden}
 <script>if (!window.docx){ const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/docx@9.16.0/dist/index.iife.js'; document.head.append(s); }</script>
 <script src="catalogue.js"></script>
 <script src="algo.js"></script>
+<script src="exo.js"></script>
 <script src="app.js"></script>
 <script src="import.js"></script>
 <script src="accueil.js"></script>

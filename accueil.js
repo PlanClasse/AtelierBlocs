@@ -57,6 +57,7 @@
     mesblocs:() => { fermer(); setView('prog'); try { openFly('mes'); } catch(_){} },
     importer:() => { fermer(); setView('prog'); const f = document.getElementById('fImport'); if (f) f.click(); },
     exporter:() => { fermer(); setView('prog'); if (window.atelierExporter) window.atelierExporter(); },
+    trous: () => { fermer(); setView('prog'); note('Exercice à trous : clic droit sur une instruction (ou sur une de ses valeurs) › « Trou d\'exercice… ». Dans la fiche, un clic sur une instruction du programme assemblé fait la même chose ; la case « Corrigé » montre les réponses et le barème.'); },
     bientot: () => toast('Bientôt disponible. Vous allez accéder à l\'atelier complet.', 2600, () => { fermer(); setView('prog'); })
   };
   A.querySelectorAll('[data-go]').forEach(b => b.onclick = e => { e.preventDefault(); (CHEMINS[b.dataset.go] || CHEMINS.complet)(); });
