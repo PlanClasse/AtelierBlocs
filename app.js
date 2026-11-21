@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 'v1.6.0';
+const APP_VERSION = 'v1.6.4';
 const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
@@ -530,10 +530,10 @@ function guardDialog(b){
     + fld('n', 'Chemin quand le test est faux (SysML)', g0.no, 'Proposé automatiquement : le contraire du test')
     + `<div class="row"><button class="no">Annuler</button><button class="pri ok">OK</button></div>`, (ov, close) => {
     const I = k => ov.querySelector(`[data-k="${k}"]`);
-    I('c').addEventListener('input', () => { const c = I('c').value.trim(); if (!b.gy) I('y').value = c; if (!b.gn) I('n').value = negCond(c); });
+    I('c').addEventListener('input', () => { const c = I('c').value.trim(); if (!b.gy) I('y').value = c; if (!b.gn) I('n').value = c===autoC() ? negOf(b, c) : negCond(c); });
     const ok = () => { const c = I('c').value.trim(), y = I('y').value.trim(), n = I('n').value.trim(); close();
       const ac = autoC(); delete b.asrc; if (!c || c===ac) delete b.alg; else b.alg = c;
-      const cc = condOf(b); if (!y || y===cc) delete b.gy; else b.gy = y; if (!n || n===negCond(cc)) delete b.gn; else b.gn = n;
+      const cc = condOf(b); if (!y || y===cc) delete b.gy; else b.gy = y; if (!n || n===negOf(b, cc)) delete b.gn; else b.gn = n;
       if (b.alg || b.gy || b.gn) b.asrc = ac; else delete b.asrc; draw(); };
     ov.querySelector('.ok').onclick = ok; ov.querySelector('.no').onclick = close;
     ov.querySelectorAll('input').forEach(i => i.onkeydown = e => { if (e.key==='Enter') ok(); if (e.key==='Escape') close(); }); I('c').focus(); });
@@ -736,7 +736,7 @@ $('#bSave').onclick = () => { S.mode = MODE; saveFile(MODE==='scratch' ? 'atelie
 $('#fOpen').onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader();
   rd.onload = () => { try { const o = JSON.parse(rd.result); if (!o.scripts) throw new Error('format'); const om = o.mode==='scratch' ? 'scratch' : 'mblock';
     if (om!==MODE){ localStorage.setItem(om==='scratch' ? 'atelier-blocs-scratch-v1' : 'atelier-blocs-v1', JSON.stringify(o)); setMode(om); return; }
-    S = Object.assign(S0(), o); syncProcs(); selected = null; draw(); note('Projet ouvert.'); } catch(_){ note('Ce fichier n\'est pas un projet de l\'atelier.'); } };
+    S = Object.assign(S0(), o); migrer(); syncProcs(); selected = null; draw(); note('Projet ouvert.'); } catch(_){ note('Ce fichier n\'est pas un projet de l\'atelier.'); } };
   rd.readAsText(f); e.target.value = ''; };
 addEventListener('keydown', e => { if ((e.key==='Delete' || e.key==='Backspace') && VIEW==='prog' && selected && !/INPUT|TEXTAREA/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable){
   dialog('<p style="margin:0 0 12px">Supprimer le programme sélectionné ?</p><div class="row"><button class="no">Annuler</button><button class="danger ok">Supprimer</button></div>', (ov, close) => { ov.querySelector('.no').onclick = close; ov.querySelector('.ok').onclick = () => { close(); S.scripts = S.scripts.filter(s => s.id!==selected); selected = null; draw(); }; }); } });
@@ -746,7 +746,11 @@ if (!S.scripts.length && !localStorage.getItem(KEY)){
   const sc = MODE==='scratch', a = make(sc ? 'drapeau' : 'boutonA'), r = make('repeter'), t = make(sc ? 'direP' : 'aff'), w = make(sc ? 'avancerPas' : 'attendre'); r.f.k0 = '3'; t.f.k0 = 'Bonjour'; r.body.push(t, w);
   S.scripts.push({id:nid(), x:30, y:30, list:[a, r]}); selected = S.scripts[0].id;
 }
-syncProcs(); drawCats(); setView('prog'); if (S.showAlgo!==false && location.hash!=='#algo') setAlgo(true); draw(); if (location.hash==='#algo'){ selected = S.sel; drawAlgo(); }
+// anciens projets : capteur quad RGB sans le menu « ligne » (ajouté en v1.6.3), « fond » devenu « arrière-plan »
+function migrer(){ for (const sc of S.scripts) walk(sc.list, b => {
+  if ((b.type==='statutEst' || b.type==='etatL1R1') && b.f && /^\(\d+\) [01]+$/.test(b.f.k1||'') && b.f.k2===undefined){ b.f.k2 = b.f.k1; b.f.k1 = 'ligne'; }
+  if (b.type==='sonde' && b.f && b.f.k2==='fond') b.f.k2 = 'arrière-plan'; }); }
+migrer(); syncProcs(); drawCats(); setView('prog'); if (S.showAlgo!==false && location.hash!=='#algo') setAlgo(true); draw(); if (location.hash==='#algo'){ selected = S.sel; drawAlgo(); }
 $('#ver').textContent = APP_VERSION;
 function setMode(m){ try { clearTimeout(saveT); localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem('atelier-mode', m); } catch(_){} location.reload(); }
 $('#mode').value = MODE; $('#mode').onchange = e => setMode(e.target.value);

@@ -17,10 +17,31 @@ function colName(c){ c = String(c).toUpperCase(); if (COLNAMES[c]) return COLNAM
 /* ---------- Textes ---------- */
 const SHORT = {distance:'distance', lumiere:'lumière ambiante', sonore:'volume sonore', minuterie:'chronomètre', ecart:'écart à la ligne',
   statut:'statut de la ligne', secousse:'force de secousse', horsPortee:'aucun obstacle (hors de portée)'};
+// Capteur quad RGB : le code binaire des sondes traduit en phrase (1 = la sonde voit ce qui est choisi : la ligne, le blanc…)
+const QVOIT = m => ({'ligne':'la ligne', 'arrière-plan':'le fond', 'couleur auto-définie':'la couleur définie'})[m] || (m ? 'le ' + m : 'la ligne');
+function quadSet(b){ const code = (String(b.f.k2 ?? '').match(/[01]+$/)||[''])[0], names = code.length===2 ? ['L1','R1'] : ['L2','L1','R1','R2'];
+  return {on: names.filter((n, i) => code[i]==='1'), n: names.length, x: QVOIT(b.f.k1), cap: b.f.k0 && b.f.k0!=='1' ? ' (capteur ' + b.f.k0 + ')' : ''}; }
+const etList = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' et ' + a[a.length-1];
+const sondeNom = b => String(b.f.k1||'').replace(/^\(\d\)\s*/, '');
+const CONDTXT = {
+  statutEst: b => { const {on, n, x, cap} = quadSet(b);
+    return (!on.length ? 'aucune sonde ne voit ' + x : on.length===n ? 'les 4 sondes voient ' + x : (on.length===1 ? 'seule ' + on[0] + ' voit ' : 'seules ' + etList(on) + ' voient ') + x) + cap; },
+  etatL1R1: b => { const {on, x, cap} = quadSet(b);
+    return (!on.length ? 'ni L1 ni R1 ne voit ' + x : on.length===2 ? 'L1 et R1 voient ' + x : 'seule ' + on[0] + ' voit ' + x) + cap; },
+  sonde: b => { const {x, cap} = quadSet(b); return 'la sonde ' + sondeNom(b) + ' voit ' + QVOIT(b.f.k2) + cap; },
+};
+const NEGTXT = {
+  statutEst: b => { const {on, n, x, cap} = quadSet(b);
+    return (!on.length ? 'au moins une sonde voit ' + x : on.length===n ? 'au moins une sonde ne voit pas ' + x : 'pas seulement ' + etList(on) + ' sur ' + x) + cap; },
+  etatL1R1: b => { const {on, x, cap} = quadSet(b);
+    return (!on.length ? 'L1 ou R1 voit ' + x : on.length===2 ? 'L1 ou R1 ne voit pas ' + x : 'pas seulement ' + on[0] + ' sur ' + x) + cap; },
+  sonde: b => { const {cap} = quadSet(b); return 'la sonde ' + sondeNom(b) + ' ne voit pas ' + QVOIT(b.f.k2) + cap; },
+};
 function valText(b){ // valeur ronde ou condition, en texte court
   if (!b) return '…';
   if (b.alg){ const a = b.alg; delete b.alg; const t = valText(b); b.alg = a; chkAlg(b, t); return b.alg ? b.alg.replace(/\s*\?$/, '') : t; }
   if (SHORT[b.type]) return SHORT[b.type];
+  if (CONDTXT[b.type]) return CONDTXT[b.type](b);
   const d = DEF[b.type]; if (!d) return '?';
   if (b.type==='var' || b.type==='liste') return Object.values(b.f)[0];
   if (/^parg_/.test(b.type)) return d.rows[0][0];
@@ -285,7 +306,8 @@ function negCond(c){
 }
 function condAuto(b){ return valText(b.in && b.in.k0).replace(/^\((.*)\)$/, '$1'); }
 function condOf(b){ const t = condAuto(b); chkAlg(b, t); return b.alg || t; }
-function guards(b, c){ c = c || condOf(b); return {yes: b.gy || c, no: b.gn || negCond(c)}; }
+function negOf(b, c){ const x = b.in && b.in.k0; if (!b.alg && x && !x.alg && NEGTXT[x.type]) return NEGTXT[x.type](x); return negCond(c); }
+function guards(b, c){ c = c || condOf(b); return {yes: b.gy || c, no: b.gn || negOf(b, c)}; }
 function blockFrag(b, depth = 0){
   const d = DEF[b.type]; if (!d) return null;
   const cond = () => condOf(b), g = () => guards(b);
@@ -317,7 +339,7 @@ function scriptFrag(sc){
   return seqFrag(parts);
 }
 /* ---------- Rendu SVG ---------- */
-const ALG = {style:'classic', io:true, view:'chart'};
+const ALG = {style:'classic', io:false, view:'chart'};
 try { Object.assign(ALG, JSON.parse(localStorage.getItem('atelier-algo') || '{}')); } catch(_){}
 function algoSVG(sc, pad = 16){
   ST = ALG.style; const F = scriptFrag(sc); if (!F) return null;

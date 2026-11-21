@@ -27,8 +27,8 @@ const SONS = 'salut|bonjour|au revoir|oui|non|merci|wow|bip|ding|ok';
 const LEDS = 'tous|1|2|3|4|5';
 const POS = 'centre de l\'écran|en haut à gauche|en haut au centre|en haut à droite|au milieu à gauche|au milieu à droite|en bas à gauche|en bas au centre|en bas à droite';
 const STATUTS = Array.from({length:16}, (_,i) => '('+i+') '+i.toString(2).padStart(4,'0')).join('|');
-const SONDES = '(1) R2|(2) R1|(3) L1|(4) L2';
-const COULS = 'ligne|fond|blanc|rouge|jaune|vert|cyan|bleu|violet|noir';
+const SONDES = '(1) R2|(2) R1|(3) L1|(4) L2', SONDES2 = '(1)R2|(2)R1|(3)L1|(4)L2';
+const COULS = 'ligne|arrière-plan|blanc|rouge|jaune|vert|cyan|bleu|violet|noir|couleur auto-définie';
 const BLOCKS_MB = [
   // ---------- Audio
   ['son1','audio','stack','lire le son [' + SONS + '] jusqu\'à la fin'],
@@ -193,15 +193,18 @@ const BLOCKS_MB = [
   ['moteurPuiss','ports','rep','puissance de rotation du moteur [M1|M2] (%)'],
   ['bandeLED','ports','stack','la bande LED [S1|S2|S3|S4] s\'allume en {c:#E3001B}'],
   // ---------- Capteur quad RGB
-  ['calib','quad','stack','capteur quad RGB [1|2|3|4] effectuer la calibration'],
-  ['statut','quad','rep','capteur quad RGB [1|2|3|4] statut ligne (0~15)'],
-  ['statutEst','quad','bool','capteur quad RGB [1|2|3|4] ligne statut est [' + STATUTS + '] ?'],
-  ['ecart','quad','rep','capteur quad RGB [1|2|3|4] écart mesuré (-100~100)'],
+  ['etatL1R1','quad','bool','capteur quad RGB [1|2|3|4] état de L1 et R1 en mode [' + COULS + '] est [(0) 00|(1) 01|(2) 10|(3) 11] ?'],
+  ['etatL1R1Val','quad','rep','capteur quad RGB [1|2|3|4] état de L1 et R1 en mode [' + COULS + '] (0~3)'],
+  ['statutEst','quad','bool','capteur quad RGB [1|2|3|4] [' + COULS + '] statut est [' + STATUTS + '] ?'],
+  ['statut','quad','rep','capteur quad RGB [1|2|3|4] statut [' + COULS + '] (0~15)'],
   ['sonde','quad','bool','capteur quad RGB [1|2|3|4] sonde [' + SONDES + '] détecte [' + COULS + '] ?'],
-  ['sondeVal','quad','rep','capteur quad RGB [1|2|3|4] sonde [' + SONDES + '] valeur [rouge|vert|bleu|luminosité|réflexion]'],
-  ['etatL1R1','quad','bool','capteur quad RGB [1|2|3|4] état de L1 et R1 est [(0) 00|(1) 01|(2) 10|(3) 11] ?'],
+  ['sondeVal','quad','rep','capteur quad RGB [1|2|3|4] sonde [' + SONDES2 + '] détecte [valeur R de l\'objet|valeur G de l\'objet|valeur B de l\'objet|niveaux de gris de l\'objet|intensité de la lumière ambiante|couleur]'],
+  ['ecart','quad','rep','capteur quad RGB [1|2|3|4] écart mesuré (-100~100)'],
   ['quadLum','quad','stack','capteur quad RGB [1|2|3|4] définir la couleur de la lumière du capteur à [vert|rouge|bleu]'],
   ['quadEteindre','quad','stack','capteur quad RGB [1|2|3|4] éteindre la lumière de remplissage'],
+  ['quadDefCoul','quad','stack','capteur quad RGB [1|2|3|4] définir la couleur à R (n:0) G (n:0) B (n:0) avec tolérance (n:50)'],
+  ['calib','quad','stack','capteur quad RGB [1|2|3|4] effectuer la calibration'],
+  ['quadMode','quad','stack','définit le mode de détection des couleurs à [Standard|Amélioration des couleurs]'],
 ];
 // Blocs portant l'icône de la carte (CyberPi, mBot2, capteurs) : catégories avec « ic » ; en Évènements, « @ ».
 
