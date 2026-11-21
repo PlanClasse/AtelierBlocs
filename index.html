@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier blocs mBlock</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;color:#334155;background:#fff;font-size:14px}
+header{display:flex;gap:6px;align-items:center;padding:6px 12px;border-bottom:1px solid #E2E8F0;background:#F8FAFC;flex-wrap:wrap}
+header h1{font-size:16px;margin:0 8px 0 0;color:#1E293B;white-space:nowrap}
+header .sp{flex:1}
+.tab{font-weight:600}
+.tab.on{background:#1E293B;color:#fff;border-color:#1E293B}
+button{font:inherit;font-size:13px;border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;color:#334155;white-space:nowrap}
+button:hover{border-color:#64748B}
+button.on{background:#1E293B;color:#fff;border-color:#1E293B}
+button.pri{background:#2563EB;color:#fff;border-color:#2563EB}
+button.danger{background:#DC2626;color:#fff;border-color:#DC2626}
+button:disabled{opacity:.6;cursor:wait}
+label.file{font-size:13px;border:1px solid #CBD5E1;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;white-space:nowrap}
+label.file input{display:none}
+.muted{color:#64748B;font-size:12px}
+.sep{width:1px;height:24px;background:#E2E8F0;margin:0 4px}
+/* vues */
+body[data-view="doc"] .only-prog, body[data-view="prog"] .only-doc{display:none !important}
+main{flex:1;display:flex;min-height:0}
+#cats{width:84px;flex:none;border-right:1px solid #E2E8F0;overflow:auto;background:#fff}
+.cat{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;padding:7px 2px;cursor:pointer;color:#575E75;text-align:center;user-select:none;line-height:1.15}
+.cat i{width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,.12)}
+.cat:hover{background:#EEF2FA}
+#flyout{width:340px;flex:none;border-right:1px solid #E2E8F0;display:flex;flex-direction:column;background:#F9F9F9;min-height:0}
+#palq{margin:8px;padding:7px 10px;border:1px solid #CBD5E1;border-radius:8px;font:inherit}
+#palsecs{flex:1;overflow:auto}
+.sec h2{font-size:13.5px;margin:0;padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;color:#475569;position:sticky;top:0;background:#F9F9F9;z-index:1;border-bottom:1px solid #EEF0F3}
+.sec h2 i{width:13px;height:13px;border-radius:50%}
+.sec h2 .n{font-size:11px;color:#94A3B8;font-weight:400}
+.sec h2 .ch{margin-left:auto;font-size:12px;transition:transform .15s}
+.sec.closed h2 .ch{transform:rotate(-90deg)}
+.sec svg{display:block;margin:4px 0 8px 10px;overflow:visible}
+.sec .mk{margin:6px 12px 0}
+#ws{flex:1;position:relative;overflow:hidden;background:#F9F9F9;background-image:radial-gradient(#D5DAE3 1.2px,transparent 1.2px);background-size:24px 24px;touch-action:none}
+#ws svg{position:absolute;inset:0;width:100%;height:100%}
+#empty{position:absolute;inset:0;display:grid;place-items:center;color:#94A3B8;pointer-events:none;text-align:center}
+#hint{position:absolute;left:12px;bottom:8px;font-size:11.5px;color:#94A3B8;pointer-events:none;max-width:80%}
+svg text{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600;font-size:12px;user-select:none;-webkit-user-select:none}
+.blk{cursor:grab}
+.blk.pal{cursor:pointer}
+.fld,.ed{cursor:text}
+.dd{cursor:pointer}
+#drag{position:fixed;inset:0;pointer-events:none;z-index:50}
+#drag svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.edit{position:fixed;z-index:60;border:2px solid #4C97FF;border-radius:16px;text-align:center;font:600 12px "Helvetica Neue",Helvetica,Arial,sans-serif;color:#575E75;outline:none;padding:0 8px;background:#fff}
+.menu{position:fixed;z-index:80;background:#fff;border:1px solid #CBD5E1;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:4px;min-width:60px;max-height:70vh;overflow:auto}
+.menu div{padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap}
+.menu div:hover{background:#EEF2FA}
+.menu.colors{display:grid;grid-template-columns:repeat(5,28px);gap:6px;padding:8px}
+.menu.colors button{width:28px;height:28px;border-radius:50%;padding:0;border:2px solid #CBD5E1}
+.menu.colors input{grid-column:1/-1;width:100%;height:28px;border:none;padding:0}
+.ov{position:fixed;inset:0;background:rgba(15,23,42,.35);display:grid;place-items:center;z-index:90}
+.box{background:#fff;border-radius:12px;padding:16px;max-width:92vw;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.25);min-width:320px}
+.box img.cap{display:block;max-width:86vw;margin:10px 0;border:1px dashed #CBD5E1}
+.box .row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+/* fiche */
+#docview{flex:1;overflow:auto;background:#E5E7EB;padding:16px}
+#doctools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;max-width:860px;margin:0 auto 12px}
+#doctools input{font:inherit;padding:6px 10px;border:1px solid #CBD5E1;border-radius:8px;min-width:220px}
+#page{background:#fff;width:794px;min-height:1123px;margin:0 auto;padding:38px;box-shadow:0 4px 18px rgba(0,0,0,.12);font-family:Aptos,"Segoe UI",Calibri,sans-serif;font-size:16px}
+.item{position:relative;border:1px dashed transparent;border-radius:6px;padding:4px 6px;margin:2px 0}
+.item:hover,.item:focus-within{border-color:#CBD5E1}
+.itools{position:absolute;right:4px;top:-14px;display:none;gap:3px;z-index:2}
+.item:hover .itools,.item:focus-within .itools{display:flex}
+.itools button{padding:1px 7px;font-size:12px}
+.txt{outline:none;min-height:24px;line-height:1.35}
+.txt:empty:before{content:attr(data-ph);color:#94A3B8}
+.pbreak{border-top:2px dashed #94A3B8;color:#94A3B8;font-size:11px;text-align:center;padding-top:2px}
+.popts{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12px;background:#F8FAFC;border-radius:6px;padding:6px 8px;margin-bottom:6px;font-family:system-ui,sans-serif}
+.item:not(:hover):not(:focus-within) .popts{display:none}
+.popts select{font:inherit;padding:3px 6px;border-radius:6px;border:1px solid #CBD5E1}
+.popts label{display:flex;align-items:center;gap:3px;cursor:pointer}
+.popts .pname{font-weight:600;color:#475569;width:100%}
+.pview{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center}
+.pview.lines{flex-direction:column;align-items:flex-start;gap:4px}
+.pimg{display:inline-block;line-height:0}
+.pview.line .pimg,.pview.lines .pimg{cursor:pointer;border-radius:6px;outline:2px solid transparent}
+.pview.line .pimg:hover,.pview.lines .pimg:hover{outline-color:#93C5FD}
+.pimg.off{opacity:.18;outline:2px dashed #F87171 !important}
+</style>
+</head>
+<body data-view="prog">
+<header>
+  <h1>🧩 Atelier blocs</h1>
+  <button class="tab on" data-v="prog">🧩 Programmes</button>
+  <button class="tab" data-v="doc">📄 Fiche</button>
+  <span class="sep"></span>
+  <span class="only-prog" style="display:flex;gap:6px">
+    <button id="bBW" title="Tous les blocs en noir et blanc (clic droit sur un bloc : un seul bloc)">◐ Noir et blanc</button>
+    <button id="bZm" title="Dézoomer">−</button><button id="bZp" title="Zoomer">+</button>
+    <button id="bRange" title="Aligner les programmes à gauche, les uns sous les autres">⇤ Ranger</button>
+    <button id="bCap" title="Image du programme sélectionné (ou de tous)">📷 Capturer</button>
+    <button id="bClr">🗑 Tout effacer</button>
+  </span>
+  <span class="sp"></span>
+  <button id="bSave" title="Enregistrer les programmes et la fiche dans un fichier">💾 Enregistrer</button>
+  <label class="file" title="Ouvrir un projet enregistré">📂 Ouvrir<input type="file" id="fOpen" accept=".json,application/json"></label>
+</header>
+<main class="only-prog">
+  <nav id="cats"></nav>
+  <aside id="flyout"><input id="palq" type="search" placeholder="Chercher un bloc : avancer, LED, distance…"><div id="palsecs"></div></aside>
+  <section id="ws"><svg id="wsv"></svg><div id="empty">Glissez des blocs ici pour construire un programme.</div>
+    <div id="hint">Glisser : construire · Clic dans la palette : ajouter au programme sélectionné · Clic droit sur un bloc : dupliquer, noir et blanc, fiche, image · Bloc relâché sur la palette : supprimé · Fond : déplacer la vue (molette aussi, Ctrl+molette = zoom)</div></section>
+</main>
+<section id="docview" class="only-doc">
+  <div id="doctools">
+    <button id="aText">+ Texte</button>
+    <button id="aProg">+ Programme ▾</button>
+    <button id="aBreak">+ Saut de page</button>
+    <span style="flex:1"></span>
+    <input id="dname" placeholder="Nom du fichier" value="Fiche programmation">
+    <button id="bDocx" class="pri">⬇ Exporter en .docx</button>
+  </div>
+  <div id="page"></div>
+</section>
+<div id="drag"><svg id="dsv"></svg></div>
+<script src="docx.iife.js"></script>
+<script>if (!window.docx){ const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/docx@9.16.0/dist/index.iife.js'; document.head.append(s); }</script>
+<script src="catalogue.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
