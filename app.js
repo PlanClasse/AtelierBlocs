@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 'v1.5.2';
+const APP_VERSION = 'v1.5.4';
 const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
@@ -432,8 +432,8 @@ $('#wsv').addEventListener('contextmenu', e => {
     ['◐ Tout le programme en noir et blanc', () => { walk(sc.list, x => x.bw = true); draw(); }],
     ['🎨 Tout le programme en couleur', () => { walk(sc.list, x => delete x.bw); draw(); }],
     ...(/^p(def|call|arg)_/.test(b.type) ? [['✏ Modifier ce bloc (nom, libellés, paramètres)', () => { const pr = (S.procs||[]).find(x => b.type.split('_')[1]===x.id); if (pr) procDialog(pr); }]] : []),
-    ...(COND_T.includes(b.type) ? [['✏ Textes du test (losange et chemins)…', () => guardDialog(b)]] : [['✏ Texte dans l\'algorigramme et l\'algorithme…', () => { const cur = b.alg || (DEF[b.type].sh==='hat' ? hatText(b) : blockText(b));
-      ask('Formulation de ce bloc dans l\'algorigramme et l\'algorithme (vide : formulation automatique)', cur, v => { v = v.trim(); const auto = (() => { const a = b.alg; delete b.alg; const t = DEF[b.type].sh==='hat' ? hatText(b) : blockText(b); if (a) b.alg = a; return t; })();
+    ...(COND_T.includes(b.type) ? [['✏ Textes du test (losange et chemins)…', () => guardDialog(b)]] : [['✏ Texte dans l\'algorigramme et l\'algorithme…', () => { const sh = DEF[b.type].sh, txtOf = () => sh==='hat' ? hatText(b) : (sh==='rep' || sh==='bool') ? valText(b) : blockText(b); const cur = b.alg || txtOf();
+      ask('Formulation de ce bloc dans l\'algorigramme et l\'algorithme (vide : formulation automatique)', cur, v => { v = v.trim(); const auto = (() => { const a = b.alg; delete b.alg; const t = txtOf(); if (a) b.alg = a; return t; })();
         if (!v || v===auto){ delete b.alg; delete b.asrc; } else { b.alg = v; b.asrc = auto; } draw(); }); }]]),
     ['📄 Ajouter ce programme à la fiche', () => { addProgToDoc(sc.id); }],
     ['📷 Image de ce programme', () => { selected = sc.id; capture(); }],

@@ -19,6 +19,7 @@ const SHORT = {distance:'distance', lumiere:'lumière ambiante', sonore:'volume 
   statut:'statut de la ligne', secousse:'force de secousse', horsPortee:'aucun obstacle (hors de portée)'};
 function valText(b){ // valeur ronde ou condition, en texte court
   if (!b) return '…';
+  if (b.alg){ const a = b.alg; delete b.alg; const t = valText(b); b.alg = a; chkAlg(b, t); return b.alg ? b.alg.replace(/\s*\?$/, '') : t; }
   if (SHORT[b.type]) return SHORT[b.type];
   const d = DEF[b.type]; if (!d) return '?';
   if (b.type==='var' || b.type==='liste') return Object.values(b.f)[0];
@@ -41,6 +42,8 @@ function partText(b, p){
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 // Formulations soignées pour l'algorigramme et l'algorithme (sinon : le texte du bloc)
 const fv = (b, k) => b.in && b.in[k] ? valText(b.in[k]) : String(b.f[k] ?? '');
+// texte saisi : entre guillemets ; variable ou autre bloc rond : sans guillemets
+const qv = (b, k) => b.in && b.in[k] ? valText(b.in[k]) : '« ' + String(b.f[k] ?? '') + ' »';
 const MOT = {EM1:'le moteur gauche (EM1)', EM2:'le moteur droit (EM2)', tout:'les deux moteurs'};
 const ledsTxt = (b, k) => b.f[k]==='tous' ? 'toutes les LED' : 'la LED ' + b.f[k];
 const ALGTXT = {
@@ -50,8 +53,8 @@ const ALGTXT = {
   ledRVB: b => 'Allumer ' + ledsTxt(b,'k0') + ' en R ' + fv(b,'k1') + ', V ' + fv(b,'k2') + ', B ' + fv(b,'k3'),
   ledOff: b => 'Éteindre ' + ledsTxt(b,'k0'),
   anim: b => 'Jouer l\'animation « ' + b.f.k0 + ' » sur les LED',
-  aff: b => 'Afficher « ' + fv(b,'k0') + ' »',
-  affLigne: b => 'Afficher « ' + fv(b,'k0') + ' » et passer à la ligne',
+  aff: b => 'Afficher ' + qv(b,'k0'),
+  affLigne: b => 'Afficher ' + qv(b,'k0') + ' et passer à la ligne',
   effacer: () => 'Effacer l\'écran',
   attendre: b => 'Attendre ' + fv(b,'k0') + ' s',
   emStop: b => 'Arrêter ' + MOT[b.f.k0],
@@ -70,8 +73,8 @@ const ALGTXT = {
   chronoZero: () => 'Remettre le chronomètre à zéro',
   son1: b => 'Jouer le son « ' + b.f.k0 + ' » jusqu\'à la fin',
   son2: b => 'Jouer le son « ' + b.f.k0 + ' »',
-  lanEnvoi: b => 'Envoyer le message « ' + fv(b,'k0') + ' » aux autres robots',
-  lanValeur: b => 'Envoyer le message « ' + fv(b,'k0') + ' » avec la valeur ' + fv(b,'k1') + ' aux autres robots',
+  lanEnvoi: b => 'Envoyer le message ' + qv(b,'k0') + ' aux autres robots',
+  lanValeur: b => 'Envoyer le message ' + qv(b,'k0') + ' avec la valeur ' + fv(b,'k1') + ' aux autres robots',
   diffuser: b => 'Envoyer le message « ' + b.f.k0 + ' »',
   calib: () => 'Calibrer le capteur de ligne',
 };
@@ -243,6 +246,8 @@ function negCond(c){
   const m = c.match(/^(.*?) ?(>|<|=|≥|≤|≠) (.+)$/); if (m) return (m[1] ? m[1] + ' ' : '') + NEG[m[2]] + ' ' + m[3];
   if (/ pressé$/.test(c)) return c.replace(/ pressé$/, ' non pressé');
   if (/ détecte /.test(c)) return c.replace(/ détecte /, ' ne détecte pas ');
+  if (/ n'est pas /.test(c)) return c.replace(/ n'est pas /, ' est ');
+  if (/ est /.test(c)) return c.replace(/ est /, ' n\'est pas ');
   if (/^non /.test(c)) return c.slice(4);
   return 'non ' + c;
 }
