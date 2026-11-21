@@ -388,6 +388,12 @@ const BLOCKS_SC = [
   ['styloTaille','pen','stack','mettre la taille du stylo à (n:1)'],
 ];
 
+/* ---------- Blocs non reconnus à l'import d'un projet (hors palette) ---------- */
+for (const [C, L] of [[CATS_MB, BLOCKS_MB], [CATS_SC, BLOCKS_SC]]){
+  C.inc = {l:'Non reconnu', c:'#94A3B8', d:'#64748B'};
+  L.push(['inconnu','inc','stack','non reconnu : (s:bloc)'], ['inconnuC','inc','c','non reconnu : (s:bloc)'], ['inconnuR','inc','rep','non reconnu : (s:valeur)'], ['inconnuB','inc','bool','non reconnu : (s:condition)']);
+}
+
 /* ---------- Mode choisi (mBlock ou Scratch) ---------- */
 const MODE = (() => { try { return localStorage.getItem('atelier-mode')==='scratch' ? 'scratch' : 'mblock'; } catch(_){ return 'mblock'; } })();
 const CATS = MODE==='scratch' ? CATS_SC : CATS_MB;

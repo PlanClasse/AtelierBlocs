@@ -168,10 +168,18 @@ body.acc-on{overflow:hidden}
 .acc-papier .ent{display:flex;justify-content:space-between;font-size:13px;border-bottom:1px solid #111;padding-bottom:6px;margin-bottom:14px}
 .acc-ins{display:flex;gap:10px;align-items:center;margin:6px 0}
 .acc-case{width:24px;height:24px;border:1.5px solid #111;flex:none}
+.acc-ech{display:flex;flex-wrap:wrap;gap:44px;align-items:center}
+.acc-ech>div:first-child{flex:1 1 420px;min-width:0}
+.acc-flux{flex:1 1 420px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap}
+.acc-fic{width:130px;height:150px;border-radius:12px 30px 12px 12px;background:#fff;border:2.5px solid #FFAB19;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.acc-fic b{font-size:24px;color:#B45309}.acc-fic span{font-size:13px;color:#475569}
+.acc-fic.acc-mb{border-color:#05A6FF}.acc-fic.acc-mb b{color:#0369A1}
+.acc-fic.acc-mid{border-radius:12px;border-color:#1E293B;background:#F1F5F9}.acc-fic.acc-mid b{font-size:34px}
+.acc-fl{font-size:30px;color:#1E293B;font-weight:700}
 .acc-chemins{background:#1E293B;color:#fff;padding:48px 0 56px}
 #accueil .acc-chemins h2{color:#fff}
 .acc-chemins .acc-sub{color:#CBD5E1}
-.acc-cartes{display:flex;flex-wrap:wrap;gap:16px}
+.acc-cartes{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
 .acc-carte{flex:1 1 200px;min-width:0;background:#fff;color:#1E293B;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px}
 .acc-carte p{margin:0;font-size:14px;color:#475569;flex:1}
 .acc-carte i{display:block;width:40px;height:8px;border-radius:4px}
@@ -221,6 +229,8 @@ body.acc-on{overflow:hidden}
   <button id="bSet" title="Paramètres : style de l'algorigramme, entrées et sorties">⚙</button>
   <button id="bSave" title="Enregistrer les programmes et la fiche dans un fichier">💾 Enregistrer</button>
   <label class="file" title="Ouvrir un projet enregistré">📂 Ouvrir<input type="file" id="fOpen" accept=".json,application/json"></label>
+  <label class="file" title="Importer les programmes d'un projet Scratch 3 (.sb3) ou mBlock 5 (.mblock)">📥 Importer<input type="file" id="fImport" accept=".sb3,.mblock"></label>
+  <button id="bExport" title="Exporter les programmes vers un fichier Scratch 3 (.sb3) ou mBlock 5 (.mblock), selon le mode">📤 Exporter</button>
   <button id="ver" title="Version de l'appli : cliquer pour vérifier les mises à jour"></button>
 </header>
 <main class="only-prog">
@@ -263,7 +273,7 @@ body.acc-on{overflow:hidden}
   <section class="acc-hero">
     <div>
       <h1>Des blocs à l'écran,<br>des fiches sur papier</h1>
-      <p>Assemblez un programme mBlock ou Scratch, regardez son algorigramme se dessiner en direct, puis imprimez une fiche d'exercice prête pour la classe.</p>
+      <p>Assemblez un programme mBlock ou Scratch, ou importez celui d'un élève. Regardez son algorigramme se dessiner en direct, imprimez une fiche d'exercice prête pour la classe, puis renvoyez le programme dans Scratch ou mBlock.</p>
       <div class="acc-btns"><button type="button" class="acc-pri" data-go="complet">Ouvrir l'atelier complet</button><a href="flux.html" class="acc-sec" style="text-decoration:none;display:inline-block" onclick="try{sessionStorage.setItem('atelier-accueil-show','1')}catch(_){}">Voir l'enchaînement des opérations</a><a href="#acc-chemins" class="acc-sec" style="text-decoration:none;display:inline-block" onclick="event.preventDefault();document.getElementById('acc-chemins').scrollIntoView({behavior:'smooth'})">Choisir ce que je veux faire</a></div>
     </div>
     <div class="acc-duo">
@@ -305,6 +315,21 @@ body.acc-on{overflow:hidden}
     </div>
   </div>
 </section></div>
+<section class="acc-band"><div class="acc-w"><div class="acc-ech">
+  <div>
+    <div class="acc-k">Avec Scratch et mBlock</div>
+    <h2>Importer, exporter : l'aller-retour</h2>
+    <p class="acc-sub" style="margin-bottom:18px">Ouvrez ici un projet fait dans Scratch ou mBlock : ses programmes arrivent dans l'atelier, avec leurs blocs personnels et leurs variables. Dans l'autre sens, l'atelier fabrique un fichier qui s'ouvre directement dans Scratch ou dans mBlock, prêt à téléverser dans le robot.</p>
+    <div class="acc-btns"><button type="button" class="acc-pri" data-go="importer">📥 Importer un projet</button><button type="button" class="acc-sec" data-go="exporter">📤 Exporter vers Scratch ou mBlock</button></div>
+  </div>
+  <div class="acc-flux" aria-hidden="true">
+    <div class="acc-fic"><b>.sb3</b><span>Scratch 3</span></div>
+    <div class="acc-fl">⇄</div>
+    <div class="acc-fic acc-mid"><b>🧩</b><span>Atelier blocs</span></div>
+    <div class="acc-fl">⇄</div>
+    <div class="acc-fic acc-mb"><b>.mblock</b><span>mBlock 5</span></div>
+  </div>
+</div></div></section>
 <section class="acc-chemins" id="acc-chemins"><div class="acc-w">
   <h2>Que voulez-vous faire ?</h2>
   <p class="acc-sub">Chaque choix ouvre l'atelier sur la bonne partie.</p>
@@ -314,6 +339,8 @@ body.acc-on{overflow:hidden}
     <div class="acc-carte"><i style="background:#F59E0B"></i><h3>Créer une fiche d'exercice</h3><p>Consignes, instructions éclatées, noir et blanc, .docx.</p><button type="button" data-go="fiche">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#0891B2"></i><h3>Algorigramme et algorithme</h3><p>À côté des blocs ou dans une autre fenêtre.</p><button type="button" data-go="algo">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#FF6680"></i><h3>Créer mes blocs</h3><p>Des blocs personnalisés, avec paramètres.</p><button type="button" data-go="mesblocs">Ouvrir</button></div>
+    <div class="acc-carte"><i style="background:#16A34A"></i><h3>Importer un projet</h3><p>Un fichier Scratch (.sb3) ou mBlock (.mblock).</p><button type="button" data-go="importer">Ouvrir</button></div>
+    <div class="acc-carte"><i style="background:#0D9488"></i><h3>Exporter vers Scratch ou mBlock</h3><p>Pour ouvrir les programmes dans Scratch ou les téléverser dans le robot.</p><button type="button" data-go="exporter">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#C2410C"></i><h3>Évaluation à trous <span class="acc-tag">Bientôt</span></h3><p>Des cases vides à compléter, avec la version corrigée.</p><button type="button" class="acc-bt" data-go="bientot">Découvrir</button></div>
   </div>
   <div class="acc-pied">
@@ -328,6 +355,7 @@ body.acc-on{overflow:hidden}
 <script src="catalogue.js"></script>
 <script src="algo.js"></script>
 <script src="app.js"></script>
+<script src="import.js"></script>
 <script src="accueil.js"></script>
 <script>if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !/claude|claudeusercontent/.test(location.host)) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>
