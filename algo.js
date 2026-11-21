@@ -31,6 +31,7 @@ function valText(b){ // valeur ronde ou condition, en texte court
 }
 function partText(b, p){
   if (typeof p==='string') return p;
+  if (p.t==='ico') return {flag:'le drapeau vert', cw:'à droite', ccw:'à gauche'}[p.v] || '';
   const ch = b.in && b.in[p.k];
   if (ch) return valText(ch);
   if (p.t==='b') return '…';
@@ -77,6 +78,27 @@ const ALGTXT = {
   lanValeur: b => 'Envoyer le message ' + qv(b,'k0') + ' avec la valeur ' + fv(b,'k1') + ' aux autres robots',
   diffuser: b => 'Envoyer le message « ' + b.f.k0 + ' »',
   calib: () => 'Calibrer le capteur de ligne',
+  // Scratch
+  dire: b => 'Dire ' + qv(b,'k0'),
+  direP: b => 'Dire ' + qv(b,'k0') + ' pendant ' + fv(b,'k1') + ' s',
+  penser: b => 'Penser à ' + qv(b,'k0'),
+  penserP: b => 'Penser à ' + qv(b,'k0') + ' pendant ' + fv(b,'k1') + ' s',
+  demander: b => 'Demander ' + qv(b,'k0') + ' et attendre la réponse',
+  tournerD: b => 'Tourner à droite de ' + fv(b,'k0') + '°',
+  tournerG: b => 'Tourner à gauche de ' + fv(b,'k0') + '°',
+  allerXY: b => 'Aller à x = ' + fv(b,'k0') + ', y = ' + fv(b,'k1'),
+  glisserXY: b => 'Glisser en ' + fv(b,'k0') + ' s jusqu\'à x = ' + fv(b,'k1') + ', y = ' + fv(b,'k2'),
+  metX: b => 'x ← ' + fv(b,'k0'),
+  metY: b => 'y ← ' + fv(b,'k0'),
+  ajX: b => 'x ← x + ' + fv(b,'k0'),
+  ajY: b => 'y ← y + ' + fv(b,'k0'),
+  orienterA: b => 'S\'orienter à ' + fv(b,'k0') + '°',
+  sonFin: b => 'Jouer le son « ' + b.f.k0 + ' » jusqu\'au bout',
+  sonJouer: b => 'Jouer le son « ' + b.f.k0 + ' »',
+  costume: b => 'Prendre le costume « ' + b.f.k0 + ' »',
+  arret: b => ({tout:'Tout arrêter', 'ce script':'Arrêter ce script'})[b.f.k0] || 'Arrêter les autres scripts',
+  styloBas: () => 'Poser le stylo',
+  styloHaut: () => 'Relever le stylo',
 };
 function procCallText(b){ const pr = (S.procs||[]).find(x => 'pcall_'+x.id===b.type); if (!pr) return blockText0(b);
   const args = pr.params.filter(p => p.t!=='l').map(p => p.name + ' = ' + (b.in && b.in['p_'+p.id] ? valText(b.in['p_'+p.id]) : (b.f['p_'+p.id] || '…')));
@@ -103,13 +125,18 @@ function hatText(b){
   if (b.type==='demarre') return 'Démarrage du CyberPi';
   if (b.type==='boutonA') return 'Appui sur le bouton ' + b.f.k0;
   if (b.type==='joystick') return 'Joystick ' + b.f.k0;
+  if (b.type==='drapeau') return 'Clic sur le drapeau vert';
+  if (b.type==='touche') return 'Appui sur la touche ' + b.f.k0;
+  if (b.type==='clicSprite') return 'Clic sur le sprite';
+  if (b.type==='clone') return 'Démarrage d\'un clone';
+  if (b.type==='recois' && MODE==='scratch') return 'Réception du message « ' + b.f.k0 + ' »';
   if (/^pdef_/.test(b.type)) return procHeadText(b);
   let t = blockText(b).replace(/^(Lorsque|Quand) /i, ''); return cap(t);
 }
 const IO_CATS = new Set(['aff']);
-const IO_IDS = new Set(['lanEnvoi','lanValeur','diffuser','diffuserAtt']);
+const IO_IDS = new Set(['lanEnvoi','lanValeur','diffuser','diffuserAtt','dire','direP','penser','penserP','demander']);
 function wrap(t, max = 24){
-  const words = String(t).split(' '), lines = []; let cur = '';
+  const words = String(t).replace(/ (s|%|°|cm|pas|tr\/min)(?=$|[ ,.;)])/g, '\u00a0$1').split(' '), lines = []; let cur = '';
   for (const w of words){ if (cur && atw(cur + ' ' + w) > max * 7.2){ lines.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; }
   if (cur) lines.push(cur); return lines.length ? lines : [''];
 }

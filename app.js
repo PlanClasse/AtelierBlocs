@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 'v1.5.5';
+const APP_VERSION = 'v1.6.0';
 const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
@@ -11,7 +11,7 @@ const tw = s => cv.measureText(String(s)).width;
 const COLORS = ['#E3001B','#F5A623','#F8E71C','#7ED321','#50E3C2','#4A90E2','#9013FE','#FF5AC8','#FFFFFF','#000000'];
 
 /* ---------- Analyse du catalogue ---------- */
-const TOK = /\((n|s|e):([^)]*)\)|<b>|\[\$(v|l|m)\]|\[([^\]]*)\]|\{c:([^}]*)\}|\{c5\}|\{\$(v|l)\}|@/g;
+const TOK = /\((n|s|e):([^)]*)\)|<b>|\[\$(v|l|m)\]|\[([^\]]*)\]|\{c:([^}]*)\}|\{c5\}|\{\$(v|l)\}|@|\{i:(\w+)\}/g;
 function splitRows(txt){ const rows = []; let d = 0, cur = '';
   for (const ch of txt){ if (ch==='[') d++; if (ch===']') d--; if (ch==='|' && d===0){ rows.push(cur); cur=''; } else cur += ch; }
   rows.push(cur); return rows; }
@@ -24,11 +24,12 @@ function parseRow(txt, st){
     if (m[1]) parts.push({t: m[1]==='e' ? 'edit' : m[1], k, v:m[2]});
     else if (m[0]==='<b>') parts.push({t:'b', k});
     else if (m[3]) parts.push({t:{v:'var', l:'list', m:'msg'}[m[3]], k});
-    else if (m[4] != null) parts.push({t:'dd', k, opts:m[4].split('|'), v:m[4].split('|')[0]});
+    else if (m[4] != null){ const pill = m[4][0]==='~', o = (pill ? m[4].slice(1) : m[4]).split('|'); parts.push({t:'dd', k, opts:o, v:o[0], pill}); }
     else if (m[5]) parts.push({t:'col', k, v:m[5]});
     else if (m[0]==='{c5}') parts.push({t:'c5', k});
     else if (m[6]) parts.push({t:'vname', k, kind:m[6]});
     else if (m[0]==='@'){ st.icon = true; st.n--; }
+    else if (m[7]){ parts.push({t:'ico', v:m[7]}); st.n--; }
   }
   push(txt.slice(last));
   return parts;
@@ -42,8 +43,9 @@ for (const [id, cat, sh, txt] of BLOCKS){
 const isRep = id => ['rep','bool'].includes(DEF[id].sh);
 
 /* ---------- État ---------- */
-let S = {scripts:[], doc:[], vars:['Var1'], lists:['List1'], msgs:['message1'], procs:[], uid:0, px:20, py:20, z:1.1};
-const KEY = 'atelier-blocs-v1';
+const S0 = () => ({scripts:[], doc:[], vars:[MODE==='scratch' ? 'ma variable' : 'Var1'], lists:[MODE==='scratch' ? 'ma liste' : 'List1'], msgs:['message1'], procs:[], uid:0, px:20, py:20, z:1.1});
+let S = S0();
+const KEY = MODE==='scratch' ? 'atelier-blocs-scratch-v1' : 'atelier-blocs-v1';   // un projet en cours par mode
 try { const raw = localStorage.getItem(KEY); if (raw) Object.assign(S, JSON.parse(raw)); } catch(_){}
 let selected = S.scripts.length ? S.scripts[S.scripts.length-1].id : null, BW = false, VIEW = 'prog';
 const nid = () => 'b' + (++S.uid) + Math.random().toString(36).slice(2,5);
@@ -111,7 +113,8 @@ function itemSize(p, b, o){
   if ((p.t==='n' || p.t==='s' || p.t==='b') && ch && !o.noChildren){ const L = lay(ch, o); return {w:L.w, h:L.h, child:ch}; }
   if (p.t==='n' || p.t==='s'){ const v = o.blankV ? '' : String(b.f[p.k] ?? ''); return {w:Math.max(40, tw(v)+22), h:FH, v}; }
   if (p.t==='b') return {w:48, h:FH};
-  if (['dd','var','list','msg'].includes(p.t)){ const v = o.blankD ? '' : String(b.f[p.k] ?? ''); return {w:o.blankD ? 44 : tw(v) + (CATS[DEF[b.type].cat].ext ? 32 : 34), h:FH, v}; }
+  if (p.t==='ico') return {w:p.v==='flag' ? 26 : 22, h:24};
+  if (['dd','var','list','msg'].includes(p.t)){ const v = o.blankD ? '' : String(b.f[p.k] ?? ''); return {w:o.blankD ? 44 : tw(v) + (CATS[DEF[b.type].cat].ext || p.pill ? 32 : 34), h:FH, v}; }
   if (p.t==='col') return {w:40, h:24};
   if (p.t==='c5') return {w:5*30 + 8, h:28};
   if (p.t==='edit') return {w:tw(b.f[p.k]||' ') + (DEF[b.type].sh==='hat' ? 20 : 0), h:24, v:b.f[p.k]};
@@ -151,7 +154,13 @@ const ICONS = {
   eye:   c => `<rect x="2" y="-1" width="22" height="16" rx="4" fill="none" stroke="${c}" stroke-width="2"/><circle cx="9" cy="7" r="3" fill="${c}"/><circle cx="17" cy="7" r="3" fill="${c}"/>`,
   quad:  c => `<rect x="1" y="1" width="24" height="12" rx="3" fill="none" stroke="${c}" stroke-width="2"/>${[6,11,16,21].map(x=>`<circle cx="${x-0.5}" cy="7" r="1.8" fill="${c}"/>`).join('')}`,
   mbot:  c => `<rect x="3" y="0" width="20" height="10" rx="3" fill="none" stroke="${c}" stroke-width="2"/><circle cx="8" cy="13" r="2.6" fill="${c}"/><circle cx="18" cy="13" r="2.6" fill="${c}"/><circle cx="10" cy="5" r="1.4" fill="${c}"/><circle cx="16" cy="5" r="1.4" fill="${c}"/>`,
+  pen:   c => `<path d="M4 18 l2 -6 l11 -11 l4 4 l-11 11 z" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round"/><path d="M4 18 l2 -6 l4 4 z" fill="${c}"/>`,
   plug:  c => `<rect x="3" y="2" width="20" height="11" rx="3" fill="none" stroke="${c}" stroke-width="2"/><rect x="8" y="-2" width="2.5" height="5" fill="${c}"/><rect x="15.5" y="-2" width="2.5" height="5" fill="${c}"/>`,
+};
+const TICONS = {   // icônes dans le texte des blocs Scratch (drapeau vert, flèches de rotation)
+  flag: (c, bw) => `<path d="M4 3 v19" stroke="${bw ? '#111' : '#45993D'}" stroke-width="2.4" stroke-linecap="round"/><path d="M4.5 4 c5,-3 9,3 15,0 v10 c-6,3 -10,-3 -15,0 z" fill="${bw ? '#fff' : '#4CBF56'}" stroke="${bw ? '#111' : '#45993D'}" stroke-width="1.4" stroke-linejoin="round"/>`,
+  cw:   (c) => `<path d="M6 17 a7 7 0 1 1 11 -3" fill="none" stroke="${c.icon}" stroke-width="2.6" stroke-linecap="round"/><path d="M13 12 l5 4 l2 -6 z" fill="${c.icon}"/>`,
+  ccw:  (c) => `<path d="M16 17 a7 7 0 1 0 -11 -3" fill="none" stroke="${c.icon}" stroke-width="2.6" stroke-linecap="round"/><path d="M9 12 l-5 4 l-2 -6 z" fill="${c.icon}"/>`,
 };
 const ARROW = (x, y, c) => `<path transform="translate(${x},${y})" d="M 3,13 C 3,6 8,3 14,4 L 13,0 L 20,6 L 12,11 L 13,7 C 9,7 7,9 7,13 Z" fill="${c}"/>`;
 function drawItems(b, row, top, rowH, x0, y0, col, o, kids){
@@ -160,6 +169,7 @@ function drawItems(b, row, top, rowH, x0, y0, col, o, kids){
     if (it.icon){ s += `<g transform="translate(${it.x},${cy-7})">${ICONS[CATS[DEF[b.type].cat].ic || 'cyber'](col.icon)}</g>`; continue; }
     const p = it.p;
     if (typeof p==='string'){ s += `<text x="${it.x}" y="${cy+4}" fill="${col.text}">${esc(p)}</text>`; continue; }
+    if (p.t==='ico'){ s += `<g transform="translate(${it.x},${cy-12})">${(TICONS[p.v] || TICONS.flag)(col, col.icon!=='#fff')}</g>`; continue; }
     const live = o.live ? ` data-k="${p.k}"` : '';
     if (it.child){ kids.push([it.child, x0 + it.x, y0 + cy - it.h/2]);
       if (o.snaps) o.snaps.push({kind:'in', b, k:p.k, bool:p.t==='b', x:x0+it.x, y:y0+cy}); continue; }
@@ -168,7 +178,7 @@ function drawItems(b, row, top, rowH, x0, y0, col, o, kids){
     else if (p.t==='b') s += `<path d="${boolPath(48,32)}" transform="translate(${it.x},${cy-16})" fill="${col.slot}" stroke="${col.slot===col.fill?col.stroke:'none'}"/>`;
     else if (['dd','var','list','msg'].includes(p.t)){
       const arr = `<path d="M ${it.x+it.w-18},${cy-2} l 4.5,5.5 l 4.5,-5.5 z" fill="${col.text}"/>`;
-      s += ext ? `<g class="dd"${live}><rect x="${it.x}" y="${cy-14}" width="${it.w}" height="28" rx="14" fill="${col.dark}" stroke="${col.darkS}"/><text x="${it.x+10}" y="${cy+4}" fill="${col.text}">${esc(it.v)}</text>${arr}</g>`
+      s += (ext || p.pill) ? `<g class="dd"${live}><rect x="${it.x}" y="${cy-14}" width="${it.w}" height="28" rx="14" fill="${col.dark}" stroke="${col.darkS}"/><text x="${it.x+10}" y="${cy+4}" fill="${col.text}">${esc(it.v)}</text>${arr}</g>`
                : `<g class="dd"${live}><rect x="${it.x}" y="${cy-16}" width="${it.w}" height="32" rx="4" fill="${col.fill}" stroke="${col.stroke}"/><text x="${it.x+10}" y="${cy+4}" fill="${col.text}">${esc(it.v)}</text>${arr}</g>`;
     }
     else if (p.t==='col'){ const v = o.blankD ? '#ffffff' : (b.f[p.k]||'#fff'); s += `<g class="dd"${live}><rect x="${it.x}" y="${cy-12}" width="40" height="24" rx="12" fill="${v}" stroke="${o.bw||b.bw||BW?'#111':'#fff'}" stroke-width="2"/></g>`; }
@@ -194,7 +204,7 @@ function renderBlock(b, x, y, o){
   let top = sh==='hat' ? HAT : 0;
   inner += drawItems(b, L.rows[0], top, L.rows[0].h, x, y, col, o, kids);
   if (sh==='e') inner += drawItems(b, L.rows[1], L.rows[0].h + L.m[0], L.rows[1].h, x, y, col, o, kids);
-  if (['c','capc','e'].includes(sh)) inner += ARROW(L.w - 28, L.h - BOT + 7, col.icon);
+  if (LOOP_IDS.has(b.type)) inner += ARROW(L.w - 28, L.h - BOT + 7, col.icon);
   const cls = o.live ? ` class="blk${o.sel && o.sel.has(b.id) ? ' sel' : ''}" data-bid="${b.id}"` : (o.pal ? ` class="blk pal" data-type="${b.type}"${b.f && DEF[b.type].rows[0].some(p=>p.t==='vname') ? ` data-name="${esc(Object.values(b.f)[0])}"` : ''}` : (o.pick ? ` class="pk" data-bid="${b.id}"` : ''));
   o.svg += `<g${cls} transform="translate(${x},${y})"><path d="${path}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1"/>${inner}</g>`;
   const bt = sh==='hat' ? 2 : 0;
@@ -238,7 +248,7 @@ function scriptOfBlock(id){ return S.scripts.find(s => locate(id, [s.list])); }
 const cleanScripts = () => { S.scripts = S.scripts.filter(s => s.list.length); };
 
 /* ═══════════════ Interface : palette ═══════════════ */
-const ORDER = ['ev','ctrl','ope','var','list','mes','audio','led','aff','mvt','capt','lan','chassis','ports','us','quad'];
+const ORDER = CAT_ORDER;
 let palQ = '', openCats = new Set(JSON.parse(localStorage.getItem('atelier-open')||'["ev","ctrl","aff"]'));
 function drawCats(){
   const el = $('#cats'); el.innerHTML = '';
@@ -560,7 +570,7 @@ function explode(list){ const out = [];
   const rec = b => { out.push(strip(b)); Object.values(b.in||{}).forEach(rec); (b.body||[]).forEach(rec); (b.body2||[]).forEach(rec); };
   list.forEach(rec); return out; }
 function instrOf(it, sc){ let ins = explode(sc.list); if (it.shuffle){ const r = rng(it.seed); for (let i=ins.length-1;i>0;i--){ const j = Math.floor(r()*(i+1)); [ins[i], ins[j]] = [ins[j], ins[i]]; } } return ins; }
-const progLabel = sc => { const f = sc.list[0]; if (!f) return 'Programme vide'; const n = S.scripts.indexOf(sc) + 1; return 'Programme ' + n + ' : ' + DEF[f.type].txt.replace(TOK, '…').replace(/\s+/g,' ').slice(0, 50) + (sc.list.length > 1 ? ' (+' + (explode(sc.list).length - 1) + ')' : ''); };
+const progLabel = sc => { const f = sc.list[0]; if (!f) return 'Programme vide'; const n = S.scripts.indexOf(sc) + 1; return 'Programme ' + n + ' : ' + (DEF[f.type].sh==='hat' ? hatText(f) : blockText(f)).slice(0, 50) + (sc.list.length > 1 ? ' (+' + (explode(sc.list).length - 1) + ')' : ''); };
 const PXK = 0.62;  // taille des images dans le document (1 = taille écran)
 function itemImages(it){ // [{doc, id}] pour l'aperçu et l'export
   const sc = S.scripts.find(s => s.id===it.sid); if (!sc) return null;
@@ -722,20 +732,26 @@ $('#aProg').onclick = e => { const r = e.currentTarget.getBoundingClientRect();
   if (!S.scripts.length) return note('Aucun programme dans la zone de travail : construisez-en un d\'abord (onglet Programmes).');
   menu(r.left, r.bottom + 4, S.scripts.map(s => [progLabel(s), () => addProgToDoc(s.id)])); };
 $('#bDocx').onclick = exportDocx;
-$('#bSave').onclick = () => saveFile('atelier-blocs.json', new Blob([JSON.stringify(S, null, 1)], {type:'application/json'}));
+$('#bSave').onclick = () => { S.mode = MODE; saveFile(MODE==='scratch' ? 'atelier-scratch.json' : 'atelier-blocs.json', new Blob([JSON.stringify(S, null, 1)], {type:'application/json'})); };
 $('#fOpen').onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader();
-  rd.onload = () => { try { const o = JSON.parse(rd.result); if (!o.scripts) throw new Error('format'); S = Object.assign({scripts:[], doc:[], vars:['Var1'], lists:['List1'], msgs:['message1'], procs:[], uid:0, px:20, py:20, z:1.1}, o); syncProcs(); selected = null; draw(); note('Projet ouvert.'); } catch(_){ note('Ce fichier n\'est pas un projet de l\'atelier.'); } };
+  rd.onload = () => { try { const o = JSON.parse(rd.result); if (!o.scripts) throw new Error('format'); const om = o.mode==='scratch' ? 'scratch' : 'mblock';
+    if (om!==MODE){ localStorage.setItem(om==='scratch' ? 'atelier-blocs-scratch-v1' : 'atelier-blocs-v1', JSON.stringify(o)); setMode(om); return; }
+    S = Object.assign(S0(), o); syncProcs(); selected = null; draw(); note('Projet ouvert.'); } catch(_){ note('Ce fichier n\'est pas un projet de l\'atelier.'); } };
   rd.readAsText(f); e.target.value = ''; };
 addEventListener('keydown', e => { if ((e.key==='Delete' || e.key==='Backspace') && VIEW==='prog' && selected && !/INPUT|TEXTAREA/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable){
   dialog('<p style="margin:0 0 12px">Supprimer le programme sélectionné ?</p><div class="row"><button class="no">Annuler</button><button class="danger ok">Supprimer</button></div>', (ov, close) => { ov.querySelector('.no').onclick = close; ov.querySelector('.ok').onclick = () => { close(); S.scripts = S.scripts.filter(s => s.id!==selected); selected = null; draw(); }; }); } });
 
 /* ---------- Démarrage ---------- */
 if (!S.scripts.length && !localStorage.getItem(KEY)){
-  const a = make('boutonA'), r = make('repeter'), t = make('aff'), w = make('attendre'); r.f.k0 = '3'; t.f.k0 = 'Bonjour'; r.body.push(t, w);
+  const sc = MODE==='scratch', a = make(sc ? 'drapeau' : 'boutonA'), r = make('repeter'), t = make(sc ? 'direP' : 'aff'), w = make(sc ? 'avancerPas' : 'attendre'); r.f.k0 = '3'; t.f.k0 = 'Bonjour'; r.body.push(t, w);
   S.scripts.push({id:nid(), x:30, y:30, list:[a, r]}); selected = S.scripts[0].id;
 }
 syncProcs(); drawCats(); setView('prog'); if (S.showAlgo!==false && location.hash!=='#algo') setAlgo(true); draw(); if (location.hash==='#algo'){ selected = S.sel; drawAlgo(); }
 $('#ver').textContent = APP_VERSION;
+function setMode(m){ try { clearTimeout(saveT); localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem('atelier-mode', m); } catch(_){} location.reload(); }
+$('#mode').value = MODE; $('#mode').onchange = e => setMode(e.target.value);
+document.body.dataset.mode = MODE; $('#palq').placeholder = MODE==='scratch' ? 'Chercher un bloc : avancer, dire, costume…' : 'Chercher un bloc : avancer, LED, distance…';
+addEventListener('storage', e => { if (e.key==='atelier-mode' && e.newValue && e.newValue!==MODE) location.reload(); });
 $('#ver').onclick = async () => { const v = await majVerifier(); note(v===null ? 'Vérification possible seulement sur le site en ligne, avec une connexion.' : v ? 'Version ' + v + ' disponible : utilisez « Mettre à jour » dans le bandeau.' : 'Vous avez la dernière version (' + APP_VERSION + ').'); };
 
 /* ═══════ Nouvelle version en ligne ? (contrôle à chaque ouverture, comme PlanClasse) ═══════

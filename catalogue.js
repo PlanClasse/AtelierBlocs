@@ -5,7 +5,7 @@
    « | » sépare les lignes d'un bloc à deux bouches (si … alors | sinon).
    Formes : hat chapeau, stack pile, c une bouche, e deux bouches, cap fin (sans suite), capc bouche sans suite,
    rep valeur ronde, bool condition. */
-const CATS = {
+const CATS_MB = {
   audio:   {l:'Audio',                  c:'#AB47BC', d:'#9B3EAB', ic:'cyber'},
   led:     {l:'LED',                    c:'#9300D8', d:'#8400C2', ic:'cyber'},
   aff:     {l:'Affichage',              c:'#6739B6', d:'#5D33A4', ic:'cyber'},
@@ -29,7 +29,7 @@ const POS = 'centre de l\'écran|en haut à gauche|en haut au centre|en haut à 
 const STATUTS = Array.from({length:16}, (_,i) => '('+i+') '+i.toString(2).padStart(4,'0')).join('|');
 const SONDES = '(1) R2|(2) R1|(3) L1|(4) L2';
 const COULS = 'ligne|fond|blanc|rouge|jaune|vert|cyan|bleu|violet|noir';
-const BLOCKS = [
+const BLOCKS_MB = [
   // ---------- Audio
   ['son1','audio','stack','lire le son [' + SONS + '] jusqu\'à la fin'],
   ['son2','audio','stack','lire le son [' + SONS + ']'],
@@ -204,3 +204,172 @@ const BLOCKS = [
   ['quadEteindre','quad','stack','capteur quad RGB [1|2|3|4] éteindre la lumière de remplissage'],
 ];
 // Blocs portant l'icône de la carte (CyberPi, mBot2, capteurs) : catégories avec « ic » ; en Évènements, « @ ».
+
+/* ═══════════════ Catalogue Scratch 3 (textes français officiels de scratch-l10n) ═══════════════
+   [~a|b] : menu arrondi foncé (comme « aller à (position aléatoire) ») · {i:flag|cw|ccw} : icône dans le texte */
+const CATS_SC = {
+  motion:  {l:'Mouvement',  c:'#4C97FF', d:'#3373CC'},
+  looks:   {l:'Apparence',  c:'#9966FF', d:'#774DCB'},
+  sound:   {l:'Son',        c:'#CF63CF', d:'#BD42BD'},
+  ev:      {l:'Événements', c:'#FFBF00', d:'#CC9900'},
+  ctrl:    {l:'Contrôle',   c:'#FFAB19', d:'#CF8B17'},
+  sensing: {l:'Capteurs',   c:'#5CB1D6', d:'#2E8EB8'},
+  ope:     {l:'Opérateurs', c:'#59C059', d:'#389438'},
+  var:     {l:'Variables',  c:'#FF8C1A', d:'#DB6E00'},
+  list:    {l:'Listes',     c:'#FF661A', d:'#E64D00'},
+  mes:     {l:'Mes blocs',  c:'#FF6680', d:'#FF3355'},
+  pen:     {l:'Stylo',      c:'#0FBD8C', d:'#0DA57A', ic:'pen', ext:1},
+};
+const SC_KEYS = 'espace|flèche haut|flèche bas|flèche droite|flèche gauche|n\'importe laquelle|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z|0|1|2|3|4|5|6|7|8|9';
+const SC_EFF = 'couleur|fisheye|tourbillon|pixeliser|mosaïque|luminosité|fantôme';
+const BLOCKS_SC = [
+  // ---------- Mouvement
+  ['avancerPas','motion','stack','avancer de (n:10) pas'],
+  ['tournerD','motion','stack','tourner {i:cw} de (n:15) degrés'],
+  ['tournerG','motion','stack','tourner {i:ccw} de (n:15) degrés'],
+  ['allerA','motion','stack','aller à [~position aléatoire|pointeur de souris]'],
+  ['allerXY','motion','stack','aller à x: (n:0) y: (n:0)'],
+  ['glisserA','motion','stack','glisser en (n:1) secondes à [~position aléatoire|pointeur de souris]'],
+  ['glisserXY','motion','stack','glisser en (n:1) secondes à x: (n:0) y: (n:0)'],
+  ['orienterA','motion','stack','s\'orienter à (n:90)'],
+  ['orienterVers','motion','stack','s\'orienter vers [~pointeur de souris]'],
+  ['ajX','motion','stack','ajouter (n:10) à x'],
+  ['metX','motion','stack','mettre x à (n:0)'],
+  ['ajY','motion','stack','ajouter (n:10) à y'],
+  ['metY','motion','stack','mettre y à (n:0)'],
+  ['rebondir','motion','stack','rebondir si le bord est atteint'],
+  ['sensRot','motion','stack','fixer le sens de rotation [gauche-droite|ne tourne pas|à 360°]'],
+  ['posX','motion','rep','abscisse x'],
+  ['posY','motion','rep','ordonnée y'],
+  ['dirSprite','motion','rep','direction'],
+  // ---------- Apparence
+  ['direP','looks','stack','dire (s:Bonjour !) pendant (n:2) secondes'],
+  ['dire','looks','stack','dire (s:Bonjour !)'],
+  ['penserP','looks','stack','penser à (s:Hmm...) pendant (n:2) secondes'],
+  ['penser','looks','stack','penser à (s:Hmm...)'],
+  ['costume','looks','stack','basculer sur le costume [~costume1|costume2]'],
+  ['costumeSuiv','looks','stack','costume suivant'],
+  ['arrPlan','looks','stack','basculer sur l\'arrière-plan [~arrière-plan1|arrière-plan suivant|arrière-plan précédent|arrière-plan aléatoire]'],
+  ['arrPlanSuiv','looks','stack','arrière-plan suivant'],
+  ['ajTaille','looks','stack','ajouter (n:10) à la taille'],
+  ['metTaille','looks','stack','mettre la taille à (n:100) % de la taille initiale'],
+  ['ajEffet','looks','stack','ajouter (n:25) à l\'effet [' + SC_EFF + ']'],
+  ['metEffet','looks','stack','mettre l\'effet [' + SC_EFF + '] à (n:0)'],
+  ['annulerEffets','looks','stack','annuler les effets graphiques'],
+  ['montrer','looks','stack','montrer'],
+  ['cacher','looks','stack','cacher'],
+  ['plan','looks','stack','aller à l\'[avant|arrière] plan'],
+  ['deplPlans','looks','stack','déplacer de (n:1) plans vers l\'[avant|arrière]'],
+  ['numCostume','looks','rep','[numéro|nom] du costume'],
+  ['numArrPlan','looks','rep','[numéro|nom] de l\'arrière-plan'],
+  ['tailleSprite','looks','rep','taille'],
+  // ---------- Son
+  ['sonFin','sound','stack','jouer le son [~Miaou] jusqu\'au bout'],
+  ['sonJouer','sound','stack','jouer le son [~Miaou]'],
+  ['sonsStop','sound','stack','arrêter tous les sons'],
+  ['ajEffetSon','sound','stack','ajouter (n:10) à l\'effet [hauteur|stéréo gauche/droite]'],
+  ['metEffetSon','sound','stack','mettre l\'effet [hauteur|stéréo gauche/droite] à (n:100)'],
+  ['annulerEffetsSon','sound','stack','annuler tous les effets sonores'],
+  ['ajVolume','sound','stack','ajouter (n:-10) au volume'],
+  ['metVolume','sound','stack','mettre le volume à (n:100) %'],
+  ['volumeSon','sound','rep','volume'],
+  // ---------- Événements
+  ['drapeau','ev','hat','quand {i:flag} est cliqué'],
+  ['touche','ev','hat','quand la touche [' + SC_KEYS + '] est pressée'],
+  ['clicSprite','ev','hat','quand ce sprite est cliqué'],
+  ['quandArrPlan','ev','hat','quand l\'arrière-plan bascule sur [arrière-plan1]'],
+  ['quandSup','ev','hat','quand le [volume sonore|chronomètre] > (n:10)'],
+  ['recois','ev','hat','quand je reçois [$m]'],
+  ['diffuser','ev','stack','envoyer à tous [$m]'],
+  ['diffuserAtt','ev','stack','envoyer à tous [$m] et attendre'],
+  // ---------- Contrôle
+  ['attendre','ctrl','stack','attendre (n:1) secondes'],
+  ['repeter','ctrl','c','répéter (n:10) fois'],
+  ['toujours','ctrl','capc','répéter indéfiniment'],
+  ['si','ctrl','c','si <b> alors'],
+  ['sinon','ctrl','e','si <b> alors|sinon'],
+  ['attJusqua','ctrl','stack','attendre jusqu\'à ce que <b>'],
+  ['jusqua','ctrl','c','répéter jusqu\'à ce que <b>'],
+  ['arret','ctrl','cap','stop [tout|ce script|autres scripts dans sprite]'],
+  ['clone','ctrl','hat','quand je commence comme un clone'],
+  ['creerClone','ctrl','stack','créer un clone de [~moi-même]'],
+  ['supprClone','ctrl','cap','supprimer ce clone'],
+  // ---------- Capteurs
+  ['toucheObj','sensing','bool','touche le [~pointeur de souris|bord] ?'],
+  ['toucheCoul','sensing','bool','couleur {c:#4C97FF} touchée ?'],
+  ['coulTouche','sensing','bool','couleur {c:#9966FF} touche {c:#FFAB19} ?'],
+  ['distanceDe','sensing','rep','distance de [~pointeur de souris]'],
+  ['demander','sensing','stack','demander (s:Quel est ton nom ?) et attendre'],
+  ['reponse','sensing','rep','réponse'],
+  ['toucheP','sensing','bool','touche [~' + SC_KEYS + '] pressée ?'],
+  ['sourisP','sensing','bool','souris pressée ?'],
+  ['sourisX','sensing','rep','souris x'],
+  ['sourisY','sensing','rep','souris y'],
+  ['glissement','sensing','stack','mettre mode de glissement à [glissable|non glissable]'],
+  ['volSonore','sensing','rep','volume sonore'],
+  ['chrono','sensing','rep','chronomètre'],
+  ['razChrono','sensing','stack','réinitialiser le chronomètre'],
+  ['attrDe','sensing','rep','[abscisse x|ordonnée y|direction|numéro de costume|nom du costume|taille|volume] de [~Sprite1|la scène]'],
+  ['actuel','sensing','rep','[année|mois|date|jour de la semaine|heure|minute|seconde] actuelle'],
+  ['jours2000','sensing','rep','jours depuis 2000'],
+  ['utilisateur','sensing','rep','nom d\'utilisateur'],
+  // ---------- Opérateurs
+  ['add','ope','rep','(n:) + (n:)'],
+  ['sous','ope','rep','(n:) - (n:)'],
+  ['mul','ope','rep','(n:) * (n:)'],
+  ['div','ope','rep','(n:) / (n:)'],
+  ['hasard','ope','rep','nombre aléatoire entre (n:1) et (n:10)'],
+  ['sup','ope','bool','(n:) > (n:50)'],
+  ['inf','ope','bool','(n:) < (n:50)'],
+  ['egal','ope','bool','(n:) = (n:50)'],
+  ['et','ope','bool','<b> et <b>'],
+  ['ou','ope','bool','<b> ou <b>'],
+  ['pas','ope','bool','non <b>'],
+  ['joindre','ope','rep','regrouper (s:pomme) et (s:banane)'],
+  ['lettre','ope','rep','lettre (n:1) de (s:pomme)'],
+  ['longueur','ope','rep','longueur de (s:pomme)'],
+  ['comprend','ope','bool','(s:pomme) contient (s:p) ?'],
+  ['modulo','ope','rep','(n:) modulo (n:)'],
+  ['arrondir','ope','rep','arrondi de (n:)'],
+  ['math','ope','rep','[abs|plancher|plafond|racine|sin|cos|tan|asin|acos|atan|ln|log|e^|10^] de (n:)'],
+  // ---------- Variables
+  ['var','var','rep','{$v}'],
+  ['defVar','var','stack','mettre [$v] à (s:0)'],
+  ['ajVar','var','stack','ajouter (n:1) à [$v]'],
+  ['montrerVar','var','stack','montrer la variable [$v]'],
+  ['cacherVar','var','stack','cacher la variable [$v]'],
+  // ---------- Listes
+  ['liste','list','rep','{$l}'],
+  ['listAj','list','stack','ajouter (s:chose) à [$l]'],
+  ['listSuppr','list','stack','supprimer l\'élément (n:1) de [$l]'],
+  ['listVide','list','stack','supprimer tous les éléments de la liste [$l]'],
+  ['listIns','list','stack','insérer (s:chose) en position (n:1) de [$l]'],
+  ['listRempl','list','stack','remplacer l\'élément (n:1) de la liste [$l] par (s:chose)'],
+  ['listObj','list','rep','élément (n:1) de [$l]'],
+  ['listPos','list','rep','position de (s:chose) dans [$l]'],
+  ['listLong','list','rep','longueur de [$l]'],
+  ['listComp','list','bool','[$l] contient (s:chose) ?'],
+  ['listMontrer','list','stack','montrer la liste [$l]'],
+  ['listCacher','list','stack','cacher la liste [$l]'],
+  // ---------- Mes blocs
+  ['defBloc','mes','hat','définir (e:mon bloc)'],
+  ['appelBloc','mes','stack','(e:mon bloc)'],
+  // ---------- Stylo (extension)
+  ['effacerTout','pen','stack','effacer tout'],
+  ['estampiller','pen','stack','estampiller'],
+  ['styloBas','pen','stack','stylo en position d\'écriture'],
+  ['styloHaut','pen','stack','relever le stylo'],
+  ['styloCoul','pen','stack','mettre la couleur du stylo à {c:#9966FF}'],
+  ['styloAjParam','pen','stack','ajouter (n:10) à la [couleur|saturation|luminosité|transparence] du stylo'],
+  ['styloMetParam','pen','stack','mettre la [couleur|saturation|luminosité|transparence] du stylo à (n:50)'],
+  ['styloAjTaille','pen','stack','ajouter (n:1) à la taille du stylo'],
+  ['styloTaille','pen','stack','mettre la taille du stylo à (n:1)'],
+];
+
+/* ---------- Mode choisi (mBlock ou Scratch) ---------- */
+const MODE = (() => { try { return localStorage.getItem('atelier-mode')==='scratch' ? 'scratch' : 'mblock'; } catch(_){ return 'mblock'; } })();
+const CATS = MODE==='scratch' ? CATS_SC : CATS_MB;
+const BLOCKS = MODE==='scratch' ? BLOCKS_SC : BLOCKS_MB;
+const CAT_ORDER = MODE==='scratch' ? ['motion','looks','sound','ev','ctrl','sensing','ope','var','list','mes','pen']
+  : ['ev','ctrl','ope','var','list','mes','audio','led','aff','mvt','capt','lan','chassis','ports','us','quad'];
+const LOOP_IDS = new Set(['repeter','toujours','jusqua','tantque','compter']);
