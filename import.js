@@ -286,6 +286,7 @@
         const nb = S.scripts.length - avant;
         syncProcs(); selected = nb ? S.scripts[avant].id : selected; S.px = 20; S.py = 50 - y0;
         close(); setView('prog'); drawCats(); draw();
+        if (window.atelierApresImport) window.atelierApresImport(nomFichier);
         note(nb + ' programme' + (nb>1 ? 's importés' : ' importé') + '.' + (report.size ? ' Blocs non reconnus, affichés en gris (à remplacer à la main) : ' + [...report].map(o => o.replace(/^[^.]*\./, '')).join(', ') + '.' : ''));
       };
     });
@@ -643,7 +644,8 @@
       ov.querySelector('.ok').onclick = async () => {
         const qui = ov.querySelector('input[name=qui]:checked').value, liste = qui==='sel' && sel ? [sel] : S.scripts;
         const r = fabriquer(liste); close();
-        await saveFile((nm.value.trim() || 'Atelier blocs').replace(/\.(sb3|mblock)$/i, '') + ext, r.blob);
+        const fn = (nm.value.trim() || 'Atelier blocs').replace(/\.(sb3|mblock)$/i, '') + ext; await saveFile(fn, r.blob);
+        if (window.atelierApresExport) window.atelierApresExport(fn);
         if (r.report.size) note('Fichier exporté. Blocs laissés de côté (pas d\'équivalent connu dans ' + (SC ? 'Scratch' : 'mBlock') + ') : ' + [...r.report].join(', ') + '.');
       };
     });

@@ -1,6 +1,6 @@
 'use strict';
-const APP_VERSION = 'v1.10.0';
-const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './import.js', './accueil.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
+const APP_VERSION = 'v1.11.0';
+const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './import.js', './accueil.js', './ui.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -729,7 +729,7 @@ function zoom(dz){ S.z = Math.max(.5, Math.min(2, +(S.z + dz).toFixed(2))); draw
 $('#bBW').onclick = e => { BW = !BW; e.currentTarget.classList.toggle('on', BW); draw(); };
 $('#bZp').onclick = () => zoom(.1); $('#bZm').onclick = () => zoom(-.1);
 $('#bCap').onclick = capture;
-$('#bClr').onclick = () => dialog('<p style="margin:0 0 12px">Effacer tous les programmes de la zone de travail ?</p><div class="row"><button class="no">Annuler</button><button class="danger ok">Effacer</button></div>', (ov, close) => { ov.querySelector('.no').onclick = close; ov.querySelector('.ok').onclick = () => { close(); S.scripts = []; selected = null; draw(); }; });
+$('#bClr').onclick = () => dialog('<p style="margin:0 0 12px">Vider la zone de travail ? Tous les programmes seront supprimés (la fiche est gardée). Pour tout recommencer, utilisez plutôt Fichier › Nouveau projet.</p><div class="row"><button class="no">Annuler</button><button class="danger ok">Effacer</button></div>', (ov, close) => { ov.querySelector('.no').onclick = close; ov.querySelector('.ok').onclick = () => { close(); S.scripts = []; selected = null; draw(); }; });
 $('#bRange').onclick = () => { let y = 30; S.scripts.forEach(s => { s.x = 30; s.y = y; y += listH(s.list, {}) + 40; }); S.px = 20; S.py = 20; draw(); };
 $('#palq').oninput = e => { palQ = e.target.value; drawPalette(); };
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => setView(t.dataset.v));

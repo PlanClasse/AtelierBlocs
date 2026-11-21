@@ -124,6 +124,36 @@ body.algo-only main{display:flex !important}
 .algotxt b{font-weight:700;letter-spacing:.02em}
 .set{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
 .set label{display:flex;gap:8px;align-items:center;cursor:pointer}
+/* barre de menu (v1.11.0) */
+#hdr{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#fff;border-bottom:1px solid #E2E8F0;flex-wrap:wrap;row-gap:6px}
+#hdr button{border:1px solid transparent;background:transparent;padding:6px 9px;border-radius:8px;color:#334155}
+#hdr button:hover{background:#F1F5F9;border-color:transparent}
+#hdr button.on{background:#1E293B;color:#fff}
+#hdr .h-logo{display:flex;gap:6px;align-items:center;padding:5px 8px}
+#hdr .h-logo b{font-size:15px;font-weight:800;color:#1E293B}
+#hdr .h-menu{font-weight:600;border-color:#CBD5E1}
+#hdr .h-menu .car{font-size:10px;color:#64748B}
+.h-seg{display:flex;background:#F1F5F9;border-radius:10px;padding:3px;gap:2px}
+#hdr .h-seg button{border-radius:8px;padding:5px 12px;font-weight:600;color:#475569}
+#hdr .h-seg button:hover{background:#E2E8F0}
+#hdr .h-seg button.on{background:#fff;color:#1E293B;box-shadow:0 1px 3px rgba(15,23,42,.15)}
+.h-grp{display:flex;align-items:center;gap:2px;flex-wrap:wrap}
+.h-zoom,.h-pair{display:flex;align-items:center;border:1px solid #E2E8F0;border-radius:9px;padding:1px;margin-right:4px}
+#hdr .h-zoom button{padding:4px 9px;font-weight:700}
+#hdr #zoomv{min-width:54px;font-size:12px;font-weight:600;color:#475569;font-variant-numeric:tabular-nums}
+#hdr .h-pair button{padding:4px 9px}
+.h-sep{width:1px;height:22px;background:#E2E8F0;margin:0 4px}
+#hdr #bSet{font-size:15px}
+#hdr #ver{font-size:11px;color:#94A3B8;padding:2px 4px}
+#hdr #ver:hover{color:#2563EB;background:none;text-decoration:underline}
+.menu.fmenu{min-width:300px;padding:6px;border-radius:10px}
+.menu .mi{display:flex;gap:10px;align-items:center}
+.menu .mi .ic{width:20px;text-align:center}
+.menu .mi .kb{margin-left:auto;padding-left:16px;color:#94A3B8;font-size:11px}
+.menu .mi small{display:block;color:#94A3B8;font-size:11px;margin-top:1px}
+.menu div.msep{height:1px;background:#E2E8F0;margin:5px 6px;padding:0;cursor:default}
+.menu div.mh{font-size:11px;color:#64748B;font-weight:700;padding:6px 12px 2px;cursor:default}
+.menu div.msep:hover,.menu div.mh:hover{background:none}
 /* accueil */
 #accueil{position:fixed;inset:0;z-index:9000;overflow:auto;background:#F8FAFC;color:#1E293B}
 #accueil[hidden]{display:none}
@@ -210,28 +240,31 @@ body.acc-on{overflow:hidden}
 </style>
 </head>
 <body data-view="prog">
-<header>
-  <h1>🧩 Atelier blocs</h1>
-  <button id="bHome" title="Revenir à la page d'accueil">🏠 Accueil</button>
-  <button class="tab on" data-v="prog">🧩 Programmes</button>
-  <button class="tab" data-v="doc">📄 Fiche</button>
-  <span class="sep"></span>
-  <span class="only-prog" style="display:flex;gap:6px">
-    <button id="bBW" title="Tous les blocs en noir et blanc (clic droit sur un bloc : un seul bloc)">◐ Noir et blanc</button>
-    <button id="bZm" title="Dézoomer">−</button><button id="bZp" title="Zoomer">+</button>
-    <button id="bRange" title="Aligner les programmes à gauche, les uns sous les autres">⇤ Ranger</button>
-    <button id="bCap" title="Image du programme sélectionné (ou de tous)">📷 Capturer</button>
+<header id="hdr">
+  <button id="bHome" class="h-logo" title="Revenir à la page d'accueil"><span>🧩</span><b>Atelier blocs</b></button>
+  <button id="bFile" class="h-menu" title="Nouveau projet, ouvrir, récents, enregistrer, importer, exporter">📁 Fichier <span class="car">▾</span></button>
+  <div class="h-seg" role="tablist" aria-label="Vue"><button class="tab on" data-v="prog">🧩 Programmes</button><button class="tab" data-v="doc">📄 Fiche</button></div>
+  <span class="h-sep"></span>
+  <span class="only-prog h-grp">
+    <span class="h-zoom"><button id="bZm" title="Dézoomer (Ctrl + molette)">−</button><button id="zoomv" title="Revenir à 100 %">100 %</button><button id="bZp" title="Zoomer (Ctrl + molette)">+</button></span>
+    <span class="h-pair" title="Disposition des programmes"><button id="bWide" title="Disposer les programmes sur toute la largeur : de gauche à droite, puis à la ligne">▦ En largeur</button><button id="bRange" title="Aligner les programmes à gauche, les uns sous les autres">☰ En colonne</button></span>
+    <span class="h-sep"></span>
+    <button id="bBW" title="Tous les blocs en noir et blanc, pour l'impression (clic droit sur un bloc : un seul bloc)">◐ Noir et blanc</button>
     <button id="bAlgo" title="Afficher l'algorigramme du programme sélectionné à côté des blocs">📊 Algorigramme</button>
-    <button id="bClr">🗑 Tout effacer</button>
+    <button id="bCap" title="Image du programme sélectionné (ou de tous)">📷 Capturer</button>
+    <button id="bClr" title="Vider la zone de travail : supprime tous les programmes (la fiche est gardée)">🗑 Vider</button>
   </span>
   <span class="sp"></span>
-  <select id="mode" title="Blocs proposés : mBlock (CyberPi, mBot2) ou Scratch"><option value="mblock">mBlock</option><option value="scratch">Scratch</option></select>
+  <div class="h-seg h-lang" role="group" aria-label="Langage"><button data-m="mblock">mBlock</button><button data-m="scratch">Scratch</button></div>
   <button id="bSet" title="Paramètres : style de l'algorigramme, entrées et sorties">⚙</button>
-  <button id="bSave" title="Enregistrer les programmes et la fiche dans un fichier">💾 Enregistrer</button>
-  <label class="file" title="Ouvrir un projet enregistré">📂 Ouvrir<input type="file" id="fOpen" accept=".json,application/json"></label>
-  <label class="file" title="Importer les programmes d'un projet Scratch 3 (.sb3) ou mBlock 5 (.mblock)">📥 Importer<input type="file" id="fImport" accept=".sb3,.mblock"></label>
-  <button id="bExport" title="Exporter les programmes vers un fichier Scratch 3 (.sb3) ou mBlock 5 (.mblock), selon le mode">📤 Exporter</button>
   <button id="ver" title="Version de l'appli : cliquer pour vérifier les mises à jour"></button>
+  <span hidden>
+    <select id="mode"><option value="mblock">mBlock</option><option value="scratch">Scratch</option></select>
+    <button id="bSave">Enregistrer</button>
+    <label class="file"><input type="file" id="fOpen" accept=".json,application/json"></label>
+    <label class="file"><input type="file" id="fImport" accept=".sb3,.mblock"></label>
+    <button id="bExport">Exporter</button>
+  </span>
 </header>
 <main class="only-prog">
   <nav id="cats"></nav>
@@ -256,7 +289,7 @@ body.acc-on{overflow:hidden}
 <section id="docview" class="only-doc">
   <div id="doctools">
     <button id="aText">+ Texte</button>
-    <button id="aProg">+ Programme ▾</button>
+    <button id="aProg">+ Programmes…</button>
     <button id="aBreak">+ Saut de page</button>
     <span style="flex:1"></span>
     <input id="dname" placeholder="Nom du fichier" value="Fiche programmation">
@@ -357,6 +390,7 @@ body.acc-on{overflow:hidden}
 <script src="app.js"></script>
 <script src="import.js"></script>
 <script src="accueil.js"></script>
+<script src="ui.js"></script>
 <script>if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !/claude|claudeusercontent/.test(location.host)) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>
 </html>

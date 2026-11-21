@@ -355,16 +355,25 @@ function algoLines(sc){
   const out = [], K = t => [t, true], T = t => [t, false];
   const L = (lvl, ...parts) => out.push({lvl, parts});
   const cnd = b => condOf(b);
+  // conditions : opérateurs booléens ET, OU, NON en gras et en majuscules (comme SI, ALORS…)
+  const BOOL = {et:' ET ', ou:' OU '};
+  const condP = (x, top) => {
+    if (!x) return [T('…')];
+    if (x.alg || !(BOOL[x.type] || x.type==='pas')) { const t = valText(x); return [T(top ? t.replace(/^\((.*)\)$/, '$1') : t)]; }
+    const sub = c => { const p = condP(c, false); return c && !c.alg && (BOOL[c.type]) ? [T('('), ...p, T(')')] : p; };
+    if (x.type==='pas') return [K('NON '), ...sub(x.in && x.in.k0)];
+    return [...sub(x.in && x.in.k0), K(BOOL[x.type]), ...sub(x.in && x.in.k1)]; };
+  const cndP = b => { const c = cnd(b); return b.alg ? [T(c)] : condP(b.in && b.in.k0, true); };
   const gen = (list, lvl) => { for (const b of list){ if (!DEF[b.type]) continue;
     switch (b.type){
-      case 'si': L(lvl, K('SI '), T(cnd(b)), K(' ALORS')); gen(b.body, lvl+1); L(lvl, K('FIN SI')); break;
-      case 'sinon': L(lvl, K('SI '), T(cnd(b)), K(' ALORS')); gen(b.body, lvl+1); L(lvl, K('SINON')); gen(b.body2, lvl+1); L(lvl, K('FIN SI')); break;
+      case 'si': L(lvl, K('SI '), ...cndP(b), K(' ALORS')); gen(b.body, lvl+1); L(lvl, K('FIN SI')); break;
+      case 'sinon': L(lvl, K('SI '), ...cndP(b), K(' ALORS')); gen(b.body, lvl+1); L(lvl, K('SINON')); gen(b.body2, lvl+1); L(lvl, K('FIN SI')); break;
       case 'repeter': L(lvl, K('RÉPÉTER '), T(fv(b,'k0')), K(' FOIS')); gen(b.body, lvl+1); L(lvl, K('FIN RÉPÉTER')); break;
       case 'compter': L(lvl, K('POUR '), T(b.f.k0), K(' DE '), T(fv(b,'k1')), K(' À '), T(fv(b,'k2')), K(' PAR PAS DE '), T(fv(b,'k3'))); gen(b.body, lvl+1); L(lvl, K('FIN POUR')); break;
-      case 'jusqua': L(lvl, K('RÉPÉTER JUSQU\'À '), T(cnd(b))); gen(b.body, lvl+1); L(lvl, K('FIN RÉPÉTER')); break;
-      case 'tantque': L(lvl, K('TANT QUE '), T(cnd(b)), K(' FAIRE')); gen(b.body, lvl+1); L(lvl, K('FIN TANT QUE')); break;
+      case 'jusqua': L(lvl, K('RÉPÉTER JUSQU\'À '), ...cndP(b)); gen(b.body, lvl+1); L(lvl, K('FIN RÉPÉTER')); break;
+      case 'tantque': L(lvl, K('TANT QUE '), ...cndP(b), K(' FAIRE')); gen(b.body, lvl+1); L(lvl, K('FIN TANT QUE')); break;
       case 'toujours': L(lvl, K('RÉPÉTER POUR TOUJOURS')); gen(b.body, lvl+1); L(lvl, K('FIN RÉPÉTER')); break;
-      case 'attJusqua': L(lvl, K('ATTENDRE JUSQU\'À '), T(cnd(b))); break;
+      case 'attJusqua': L(lvl, K('ATTENDRE JUSQU\'À '), ...cndP(b)); break;
       case 'arret': L(lvl, K('ARRÊTER LE PROGRAMME')); break;
       default: if (DEF[b.type].sh!=='hat') L(lvl, T(blockText(b)));
     } } };
