@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 'v1.6.4';
+const APP_VERSION = 'v1.7.1';
 const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
@@ -749,7 +749,8 @@ if (!S.scripts.length && !localStorage.getItem(KEY)){
 // anciens projets : capteur quad RGB sans le menu « ligne » (ajouté en v1.6.3), « fond » devenu « arrière-plan »
 function migrer(){ for (const sc of S.scripts) walk(sc.list, b => {
   if ((b.type==='statutEst' || b.type==='etatL1R1') && b.f && /^\(\d+\) [01]+$/.test(b.f.k1||'') && b.f.k2===undefined){ b.f.k2 = b.f.k1; b.f.k1 = 'ligne'; }
-  if (b.type==='sonde' && b.f && b.f.k2==='fond') b.f.k2 = 'arrière-plan'; }); }
+  if (b.type==='sonde' && b.f && b.f.k2==='fond') b.f.k2 = 'arrière-plan';
+  if (b.type==='bandeLED' && b.f && typeof b.f.k1==='string') b.f.k1 = Array(5).fill(b.f.k1); }); }
 migrer(); syncProcs(); drawCats(); setView('prog'); if (S.showAlgo!==false && location.hash!=='#algo') setAlgo(true); draw(); if (location.hash==='#algo'){ selected = S.sel; drawAlgo(); }
 $('#ver').textContent = APP_VERSION;
 function setMode(m){ try { clearTimeout(saveT); localStorage.setItem(KEY, JSON.stringify(S)); localStorage.setItem('atelier-mode', m); } catch(_){} location.reload(); }

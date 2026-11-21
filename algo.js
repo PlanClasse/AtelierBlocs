@@ -146,8 +146,9 @@ function hatText(b){
   if (b.type==='demarre') return 'Démarrage du CyberPi';
   if (b.type==='boutonA') return 'Appui sur le bouton ' + b.f.k0;
   if (b.type==='joystick') return 'Joystick ' + b.f.k0;
-  if (b.type==='drapeau') return 'Clic sur le drapeau vert';
-  if (b.type==='touche') return 'Appui sur la touche ' + b.f.k0;
+  if (b.type==='drapeau' || b.type==='drapeauMB') return 'Clic sur le drapeau vert';
+  if (b.type==='touche' || b.type==='toucheMB') return 'Appui sur la touche ' + b.f.k0;
+  if (b.type==='signeEv') return cap(b.f.k0) + ' détecté';
   if (b.type==='clicSprite') return 'Clic sur le sprite';
   if (b.type==='clone') return 'Démarrage d\'un clone';
   if (b.type==='recois' && MODE==='scratch') return 'Réception du message « ' + b.f.k0 + ' »';
