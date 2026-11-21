@@ -80,8 +80,10 @@ function procCallText(b){ const pr = (S.procs||[]).find(x => 'pcall_'+x.id===b.t
   return pr.name + (args.length ? ' (' + args.join(', ') + ')' : ''); }
 function procHeadText(b){ const pr = (S.procs||[]).find(x => 'pdef_'+x.id===b.type); if (!pr) return '?';
   const ps = pr.params.filter(p => p.t!=='l').map(p => p.name); return pr.name + (ps.length ? ' (' + ps.join(', ') + ')' : ''); }
+// Textes personnalisés : abandonnés si le bloc a été modifié depuis (b.asrc = texte automatique au moment de la saisie)
+function chkAlg(b, auto){ if (b.asrc!==undefined && b.asrc!==auto){ delete b.alg; delete b.gy; delete b.gn; delete b.asrc; } }
 function blockText(b){
-  if (b.alg) return b.alg;
+  if (b.alg){ const a = b.alg; delete b.alg; const t = blockText(b); b.alg = a; chkAlg(b, t); return b.alg || t; }
   if (/^pcall_/.test(b.type)) return procCallText(b);
   if (ALGTXT[b.type]) try { return cap(ALGTXT[b.type](b)); } catch(_){}
   return blockText0(b);
@@ -94,7 +96,7 @@ function blockText0(b){
 }
 function hatText(b){
   const d = DEF[b.type];
-  if (b.alg) return b.alg;
+  if (b.alg){ const a = b.alg; delete b.alg; const t = hatText(b); b.alg = a; chkAlg(b, t); return b.alg || t; }
   if (b.type==='demarre') return 'Démarrage du CyberPi';
   if (b.type==='boutonA') return 'Appui sur le bouton ' + b.f.k0;
   if (b.type==='joystick') return 'Joystick ' + b.f.k0;
@@ -164,14 +166,14 @@ function seqFrag(list){
 }
 // Losange : renvoie ses dimensions et sa fonction de dessin (centre cx, haut y)
 function diamond(cond){
-  if (ST==='sysml'){ const lines = wrap(cond, 22), tw0 = Math.max(...lines.map(atw));
-    return {w:30, h:30, tw:tw0, draw:(cx, y) => `<path d="M ${cx} ${y} L ${cx+15} ${y+15} L ${cx} ${y+30} L ${cx-15} ${y+15} z" fill="#fff" stroke="${INK}" stroke-width="1.6"/>` + txt(lines, cx - 20, y - 4 - (lines.length-1)*8, 'end', 'cond')}; }
+  if (ST==='sysml')   // SysML : losange vide, seules les gardes des chemins portent le test
+    return {w:30, h:30, tw:0, draw:(cx, y) => `<path d="M ${cx} ${y} L ${cx+15} ${y+15} L ${cx} ${y+30} L ${cx-15} ${y+15} z" fill="#fff" stroke="${INK}" stroke-width="1.6"/>`};
   const t = cond + ' ?', lines = wrap(t, 18), tw0 = Math.max(...lines.map(atw));
   const w = Math.max(120, tw0 * 1.55 + 36), h = Math.max(60, lines.length*16*1.7 + 24);
   return {w, h, draw:(cx, y) => `<path d="M ${cx} ${y} L ${cx+w/2} ${y+h/2} L ${cx} ${y+h} L ${cx-w/2} ${y+h/2} z" fill="#fff" stroke="${INK}" stroke-width="1.6"/>` + txt(lines, cx, y + h/2)};
 }
 const gw = (g, k) => (ST==='sysml' && g) ? atw('[' + g[k] + ']') * 0.88 + 4 : 24;   // largeur d'une garde
-const dLeft = D => ST==='sysml' ? Math.max(D.w/2, D.tw + 26) : D.w/2;   // place prise à gauche par la condition (SysML)
+const dLeft = D => D.w/2;
 // si … alors
 function ifFrag(cond, body, g){
   const D = diamond(cond), B = body;
@@ -192,7 +194,7 @@ function ifElseFrag(cond, A, B, g){
   const L = Math.max(dLeft(D), dxA + A.cx), R = Math.max(D.w/2, dxB + (B.w - B.cx));
   const yT = D.h/2 + G + 4, yJ = yT + Math.max(A.h, B.h) + G/2 + 6, h = yJ + G/2 + 6;
   return {w:L+R, h, cx:L, exit:A.exit || B.exit, draw:(x, y) => { const cx = x+L, xa = cx - dxA, xb = cx + dxB; let s = D.draw(cx, y);
-    s += line([[cx - D.w/2, y + D.h/2], [xa, y + D.h/2], [xa, y + yT - 1]], !A.empty) + labg(g, cx - D.w/2 - 6, y + D.h/2 + (ST==='sysml' ? 15 : -6), 'oui', 'end');
+    s += line([[cx - D.w/2, y + D.h/2], [xa, y + D.h/2], [xa, y + yT - 1]], !A.empty) + labg(g, cx - D.w/2 - 6, y + D.h/2 - 6, 'oui', 'end');
     s += line([[cx + D.w/2, y + D.h/2], [xb, y + D.h/2], [xb, y + yT - 1]], !B.empty) + labg(g, cx + D.w/2 + 6, y + D.h/2 - 6, 'non');
     if (!A.empty) s += A.draw(xa - A.cx, y + yT); if (!B.empty) s += B.draw(xb - B.cx, y + yT);
     if (A.exit) s += line([[xa, y + yT + A.h], [xa, y + yJ], [cx - 2, y + yJ]], ST!=='sysml');
@@ -244,7 +246,8 @@ function negCond(c){
   if (/^non /.test(c)) return c.slice(4);
   return 'non ' + c;
 }
-function condOf(b){ return b.alg || valText(b.in && b.in.k0).replace(/^\((.*)\)$/, '$1'); }
+function condAuto(b){ return valText(b.in && b.in.k0).replace(/^\((.*)\)$/, '$1'); }
+function condOf(b){ const t = condAuto(b); chkAlg(b, t); return b.alg || t; }
 function guards(b, c){ c = c || condOf(b); return {yes: b.gy || c, no: b.gn || negCond(c)}; }
 function blockFrag(b, depth = 0){
   const d = DEF[b.type]; if (!d) return null;
