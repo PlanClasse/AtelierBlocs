@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 'v1.4.0';
+const APP_VERSION = 'v1.5.0';
 const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
@@ -432,9 +432,9 @@ $('#wsv').addEventListener('contextmenu', e => {
     ['◐ Tout le programme en noir et blanc', () => { walk(sc.list, x => x.bw = true); draw(); }],
     ['🎨 Tout le programme en couleur', () => { walk(sc.list, x => delete x.bw); draw(); }],
     ...(/^p(def|call|arg)_/.test(b.type) ? [['✏ Modifier ce bloc (nom, libellés, paramètres)', () => { const pr = (S.procs||[]).find(x => b.type.split('_')[1]===x.id); if (pr) procDialog(pr); }]] : []),
-    ['✏ Texte dans l\'algorigramme et l\'algorithme…', () => { const cur = b.alg || (DEF[b.type].sh==='hat' ? hatText(b) : blockText(b));
+    ...(COND_T.includes(b.type) ? [['✏ Textes du test (losange et chemins)…', () => guardDialog(b)]] : [['✏ Texte dans l\'algorigramme et l\'algorithme…', () => { const cur = b.alg || (DEF[b.type].sh==='hat' ? hatText(b) : blockText(b));
       ask('Formulation de ce bloc dans l\'algorigramme et l\'algorithme (vide : formulation automatique)', cur, v => { v = v.trim(); const auto = (() => { const a = b.alg; delete b.alg; const t = DEF[b.type].sh==='hat' ? hatText(b) : blockText(b); if (a) b.alg = a; return t; })();
-        if (!v || v===auto) delete b.alg; else b.alg = v; draw(); }); }],
+        if (!v || v===auto) delete b.alg; else b.alg = v; draw(); }); }]]),
     ['📄 Ajouter ce programme à la fiche', () => { addProgToDoc(sc.id); }],
     ['📷 Image de ce programme', () => { selected = sc.id; capture(); }],
     ['🗑 Supprimer ce bloc', () => { if (ref.type==='list') ref.list.splice(ref.i, 1); else delete ref.parent.in[ref.k]; cleanScripts(); draw(); }],
@@ -509,6 +509,24 @@ function dialog(html, onReady){ const ov = document.createElement('div'); ov.cla
 function ask(title, val, fn){ dialog(`<p style="margin:0 0 8px;font-weight:600">${esc(title)}</p><input class="ask" style="width:100%;font:inherit;padding:8px;border:1px solid #CBD5E1;border-radius:8px"><div class="row"><button class="no">Annuler</button><button class="pri ok">OK</button></div>`, (ov, close) => {
   const i = ov.querySelector('input'); i.value = val; i.focus(); const ok = () => { close(); fn(i.value); };
   ov.querySelector('.ok').onclick = ok; ov.querySelector('.no').onclick = close; i.onkeydown = e => { if (e.key==='Enter') ok(); if (e.key==='Escape') close(); }; }); }
+const COND_T = ['si','sinon','jusqua','tantque','attJusqua'];
+function guardDialog(b){
+  const autoC = () => { const a = b.alg; delete b.alg; const t = condOf(b); if (a) b.alg = a; return t; };
+  const c0 = condOf(b), g0 = guards(b, c0);
+  const fld = (k, l, v, hint) => `<label style="display:block;margin:8px 0 2px;font-weight:600">${l}</label><input data-k="${k}" style="width:100%;font:inherit;padding:7px;border:1px solid #CBD5E1;border-radius:8px" value="${esc(v)}">${hint ? `<div class="muted" style="font-size:12px">${hint}</div>` : ''}`;
+  dialog(`<p style="margin:0 0 4px;font-weight:700">Textes du test</p><div class="muted" style="font-size:12px">Laisser vide pour revenir au texte automatique.</div>`
+    + fld('c', 'Test (losange, algorithme)', c0)
+    + fld('y', 'Chemin quand le test est vrai (SysML)', g0.yes, 'Affiché entre crochets : [' + esc(g0.yes) + ']')
+    + fld('n', 'Chemin quand le test est faux (SysML)', g0.no, 'Proposé automatiquement : le contraire du test')
+    + `<div class="row"><button class="no">Annuler</button><button class="pri ok">OK</button></div>`, (ov, close) => {
+    const I = k => ov.querySelector(`[data-k="${k}"]`);
+    I('c').addEventListener('input', () => { const c = I('c').value.trim(); if (!b.gy) I('y').value = c; if (!b.gn) I('n').value = negCond(c); });
+    const ok = () => { const c = I('c').value.trim(), y = I('y').value.trim(), n = I('n').value.trim(); close();
+      const ac = autoC(); if (!c || c===ac) delete b.alg; else b.alg = c;
+      const cc = condOf(b); if (!y || y===cc) delete b.gy; else b.gy = y; if (!n || n===negCond(cc)) delete b.gn; else b.gn = n; draw(); };
+    ov.querySelector('.ok').onclick = ok; ov.querySelector('.no').onclick = close;
+    ov.querySelectorAll('input').forEach(i => i.onkeydown = e => { if (e.key==='Enter') ok(); if (e.key==='Escape') close(); }); I('c').focus(); });
+}
 function note(msg){ dialog(`<p style="margin:0 0 12px">${esc(msg)}</p><div class="row"><button class="pri ok">OK</button></div>`, (ov, close) => ov.querySelector('.ok').onclick = close); }
 
 /* ---------- Images (PNG) ---------- */

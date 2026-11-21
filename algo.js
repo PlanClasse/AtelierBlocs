@@ -118,7 +118,8 @@ function txt(lines, cx, cy, anchor = 'middle', cls = ''){
    frag = {w, h, cx, exit, draw(x, y)} : (x, y) = coin haut-gauche ; entrée en (x+cx, y), sortie en (x+cx, y+h). */
 let ST = 'classic', CTR = 0;
 const line = (pts, arrow = true) => `<path d="M ${pts.map(p => p.join(' ')).join(' L ')}" fill="none" stroke="${INK}" stroke-width="1.4"${arrow ? ' marker-end="url(#af-arr)"' : ''}/>`;
-const lab = (x, y, t, anchor = 'start') => ST==='sysml' ? '' : `<text x="${x}" y="${y}" text-anchor="${anchor}" class="lab">${aesc(t)}</text>`;
+const labg = (g, x, y, t, anchor = 'start') => { if (ST==='sysml'){ if (!g) return ''; t = '[' + (t==='oui' ? g.yes : g.no) + ']'; } return lab(x, y, t, anchor); };
+const lab = (x, y, t, anchor = 'start') => `<text x="${x}" y="${y}" text-anchor="${anchor}" class="lab">${aesc(t)}</text>`;
 const mergeMark = (x, y) => ST==='sysml' ? `<path d="M ${x} ${y-9} L ${x+9} ${y} L ${x} ${y+9} L ${x-9} ${y} z" fill="#fff" stroke="${INK}" stroke-width="1.4"/>` : '';
 
 function boxFrag(kind, text){
@@ -169,29 +170,30 @@ function diamond(cond){
   const w = Math.max(120, tw0 * 1.55 + 36), h = Math.max(60, lines.length*16*1.7 + 24);
   return {w, h, draw:(cx, y) => `<path d="M ${cx} ${y} L ${cx+w/2} ${y+h/2} L ${cx} ${y+h} L ${cx-w/2} ${y+h/2} z" fill="#fff" stroke="${INK}" stroke-width="1.6"/>` + txt(lines, cx, y + h/2)};
 }
+const gw = (g, k) => (ST==='sysml' && g) ? atw('[' + g[k] + ']') * 0.88 + 4 : 24;   // largeur d'une garde
 const dLeft = D => ST==='sysml' ? Math.max(D.w/2, D.tw + 26) : D.w/2;   // place prise à gauche par la condition (SysML)
 // si … alors
-function ifFrag(cond, body){
+function ifFrag(cond, body, g){
   const D = diamond(cond), B = body;
-  const L = Math.max(dLeft(D), B.cx), R = Math.max(D.w/2, B.w - B.cx) + 34;
+  const L = Math.max(dLeft(D), B.cx), R = Math.max(D.w/2 + gw(g,'no') + 4, B.w - B.cx, gw(g,'yes') + 6) + 34;
   const yB = D.h + G, yJ = yB + B.h + (B.empty ? 0 : G/2) + 10, h = yJ + G/2 + 6;
   return {w:L+R, h, cx:L, exit:true, draw:(x, y) => { const cx = x+L; let s = D.draw(cx, y);
-    if (!B.empty){ s += line([[cx, y+D.h], [cx, y+yB-1]]) + lab(cx+6, y+D.h+14, 'oui') + B.draw(cx - B.cx, y+yB); if (B.exit) s += line([[cx, y+yB+B.h], [cx, y+yJ]], false); }
-    else s += line([[cx, y+D.h], [cx, y+yJ]], false) + lab(cx+6, y+D.h+14, 'oui');
+    if (!B.empty){ s += line([[cx, y+D.h], [cx, y+yB-1]]) + labg(g, cx+6, y+D.h+14, 'oui') + B.draw(cx - B.cx, y+yB); if (B.exit) s += line([[cx, y+yB+B.h], [cx, y+yJ]], false); }
+    else s += line([[cx, y+D.h], [cx, y+yJ]], false) + labg(g, cx+6, y+D.h+14, 'oui');
     const xr = x + L + R - 6;
-    s += line([[cx + D.w/2, y + D.h/2], [xr, y + D.h/2], [xr, y+yJ], [cx + 2, y+yJ]]) + lab(cx + D.w/2 + 6, y + D.h/2 - 6, 'non');
+    s += line([[cx + D.w/2, y + D.h/2], [xr, y + D.h/2], [xr, y+yJ], [cx + 2, y+yJ]]) + labg(g, cx + D.w/2 + 6, y + D.h/2 - 6, 'non');
     s += mergeMark(cx, y+yJ) + line([[cx, y+yJ + (ST==='sysml' ? 9 : 0)], [cx, y+h]], false);
     return s; }};
 }
 // si … alors … sinon
-function ifElseFrag(cond, A, B){
+function ifElseFrag(cond, A, B, g){
   const D = diamond(cond);
-  const dxA = Math.max(D.w/2 + 16, (A.w - A.cx) + 18), dxB = Math.max(D.w/2 + 16, B.cx + 18);
+  const dxA = Math.max(D.w/2 + 16, D.w/2 + gw(g,'yes') + 14, (A.w - A.cx) + 18), dxB = Math.max(D.w/2 + 16, D.w/2 + gw(g,'no') + 14, B.cx + 18);
   const L = Math.max(dLeft(D), dxA + A.cx), R = Math.max(D.w/2, dxB + (B.w - B.cx));
   const yT = D.h/2 + G + 4, yJ = yT + Math.max(A.h, B.h) + G/2 + 6, h = yJ + G/2 + 6;
   return {w:L+R, h, cx:L, exit:A.exit || B.exit, draw:(x, y) => { const cx = x+L, xa = cx - dxA, xb = cx + dxB; let s = D.draw(cx, y);
-    s += line([[cx - D.w/2, y + D.h/2], [xa, y + D.h/2], [xa, y + yT - 1]], !A.empty) + lab(cx - D.w/2 - 6, y + D.h/2 + (ST==='sysml' ? 15 : -6), 'oui', 'end');
-    s += line([[cx + D.w/2, y + D.h/2], [xb, y + D.h/2], [xb, y + yT - 1]], !B.empty) + lab(cx + D.w/2 + 6, y + D.h/2 - 6, 'non');
+    s += line([[cx - D.w/2, y + D.h/2], [xa, y + D.h/2], [xa, y + yT - 1]], !A.empty) + labg(g, cx - D.w/2 - 6, y + D.h/2 + (ST==='sysml' ? 15 : -6), 'oui', 'end');
+    s += line([[cx + D.w/2, y + D.h/2], [xb, y + D.h/2], [xb, y + yT - 1]], !B.empty) + labg(g, cx + D.w/2 + 6, y + D.h/2 - 6, 'non');
     if (!A.empty) s += A.draw(xa - A.cx, y + yT); if (!B.empty) s += B.draw(xb - B.cx, y + yT);
     if (A.exit) s += line([[xa, y + yT + A.h], [xa, y + yJ], [cx - 2, y + yJ]], ST!=='sysml');
     if (B.exit) s += line([[xb, y + yT + B.h], [xb, y + yJ], [cx + 2, y + yJ]], ST!=='sysml');
@@ -199,24 +201,24 @@ function ifElseFrag(cond, A, B){
     return s; }};
 }
 // boucle avec test en tête : bodyOn = 'oui' ou 'non' (la branche qui entre dans le corps)
-function loopFrag(cond, body, bodyOn){
+function loopFrag(cond, body, bodyOn, g){
   const D = diamond(cond), B = body.empty ? {w:0, h:0, cx:0, exit:true, empty:true, draw:() => ''} : body;
-  const T = ST==='sysml' ? 40 : 20, L = Math.max(dLeft(D), B.cx) + 26, R = Math.max(D.w/2, B.w - B.cx) + 34;
+  const T = ST==='sysml' ? 40 : 20, L = Math.max(dLeft(D), B.cx) + 26, R = Math.max(D.w/2 + gw(g, bodyOn==='oui' ? 'no' : 'yes') + 4, B.w - B.cx, gw(g, bodyOn==='oui' ? 'yes' : 'no') + 6) + 34;
   const yB = T + D.h + G, yb = yB + B.h, h = yb + 14 + G + 6;
   return {w:L+R, h, cx:L, exit:true, draw:(x, y) => { const cx = x+L, xl = x + 8, xr = x + L + R - 6; let s = '';
     s += line([[cx, y], [cx, y+T]], false) + mergeMark(cx, y + T/2);
-    s += D.draw(cx, y+T) + line([[cx, y+T+D.h], [cx, y+yB-1]], B.empty ? false : true) + lab(cx+6, y+T+D.h+14, bodyOn);
+    s += D.draw(cx, y+T) + line([[cx, y+T+D.h], [cx, y+yB-1]], B.empty ? false : true) + labg(g, cx+6, y+T+D.h+14, bodyOn);
     s += B.draw(cx - B.cx, y+yB);
     s += line([[cx, y+yb], [cx, y+yb+14], [xl, y+yb+14], [xl, y + T/2], [cx - (ST==='sysml' ? 10 : 2), y + T/2]]);
-    s += line([[cx + D.w/2, y+T+D.h/2], [xr, y+T+D.h/2], [xr, y+yb+14+G/2+4], [cx, y+yb+14+G/2+4], [cx, y+h]]) + lab(cx + D.w/2 + 6, y+T+D.h/2 - 6, bodyOn==='oui' ? 'non' : 'oui');
+    s += line([[cx + D.w/2, y+T+D.h/2], [xr, y+T+D.h/2], [xr, y+yb+14+G/2+4], [cx, y+yb+14+G/2+4], [cx, y+h]]) + labg(g, cx + D.w/2 + 6, y+T+D.h/2 - 6, bodyOn==='oui' ? 'non' : 'oui');
     return s; }};
 }
 // attendre jusqu'à : le losange reboucle sur lui-même
-function waitFrag(cond){
-  const D = diamond(cond), T = ST==='sysml' ? 40 : 20, L = dLeft(D) + 26, R = D.w/2 + 10, h = T + D.h + G;
+function waitFrag(cond, g){
+  const D = diamond(cond), T = ST==='sysml' ? 40 : 20, L = Math.max(dLeft(D), D.w/2 + gw(g,'no') + 14) + 26, R = Math.max(D.w/2, gw(g,'yes') + 6) + 10, h = T + D.h + G;
   return {w:L+R, h, cx:L, exit:true, draw:(x, y) => { const cx = x+L, xl = x + 8; let s = line([[cx, y], [cx, y+T]], false) + mergeMark(cx, y + T/2) + D.draw(cx, y+T);
-    s += line([[cx - D.w/2, y+T+D.h/2], [xl, y+T+D.h/2], [xl, y+T/2], [cx - (ST==='sysml' ? 10 : 2), y+T/2]]) + lab(cx - D.w/2 - 6, y+T+D.h/2 + 15, 'non', 'end');
-    s += line([[cx, y+T+D.h], [cx, y+h]], false) + lab(cx+6, y+T+D.h+14, 'oui');
+    s += line([[cx - D.w/2, y+T+D.h/2], [xl, y+T+D.h/2], [xl, y+T/2], [cx - (ST==='sysml' ? 10 : 2), y+T/2]]) + labg(g, cx - D.w/2 - 6, y+T+D.h/2 + 15, 'non', 'end');
+    s += line([[cx, y+T+D.h], [cx, y+h]], false) + labg(g, cx+6, y+T+D.h+14, 'oui');
     return s; }};
 }
 // pour toujours : retour au début du corps, pas de sortie
@@ -234,20 +236,30 @@ function listFrag(list, depth){
   return seqFrag(out);
 }
 const CNT = ['i','j','k','m','n'];
+const NEG = {'>':'≤', '<':'≥', '=':'≠', '≥':'<', '≤':'>', '≠':'='};
+function negCond(c){
+  const m = c.match(/^(.*?) ?(>|<|=|≥|≤|≠) (.+)$/); if (m) return (m[1] ? m[1] + ' ' : '') + NEG[m[2]] + ' ' + m[3];
+  if (/ pressé$/.test(c)) return c.replace(/ pressé$/, ' non pressé');
+  if (/ détecte /.test(c)) return c.replace(/ détecte /, ' ne détecte pas ');
+  if (/^non /.test(c)) return c.slice(4);
+  return 'non ' + c;
+}
+function condOf(b){ return b.alg || valText(b.in && b.in.k0).replace(/^\((.*)\)$/, '$1'); }
+function guards(b, c){ c = c || condOf(b); return {yes: b.gy || c, no: b.gn || negCond(c)}; }
 function blockFrag(b, depth = 0){
   const d = DEF[b.type]; if (!d) return null;
-  const cond = () => valText(b.in && b.in.k0).replace(/^\((.*)\)$/, '$1');
+  const cond = () => condOf(b), g = () => guards(b);
   switch (b.type){
-    case 'si': return ifFrag(cond(), listFrag(b.body, depth));
-    case 'sinon': return ifElseFrag(cond(), listFrag(b.body, depth), listFrag(b.body2, depth));
-    case 'jusqua': return loopFrag(cond(), listFrag(b.body, depth+1), 'non');
-    case 'tantque': return loopFrag(cond(), listFrag(b.body, depth+1), 'oui');
-    case 'attJusqua': return waitFrag(cond());
+    case 'si': return ifFrag(cond(), listFrag(b.body, depth), g());
+    case 'sinon': return ifElseFrag(cond(), listFrag(b.body, depth), listFrag(b.body2, depth), g());
+    case 'jusqua': return loopFrag(cond(), listFrag(b.body, depth+1), 'non', g());
+    case 'tantque': return loopFrag(cond(), listFrag(b.body, depth+1), 'oui', g());
+    case 'attJusqua': return waitFrag(cond(), g());
     case 'toujours': return foreverFrag(listFrag(b.body, depth+1));
     case 'repeter': { const v = CNT[depth % CNT.length], n = b.in && b.in.k0 ? valText(b.in.k0) : b.f.k0;
-      return seqFrag([boxFrag('act', v + ' ← 0'), loopFrag(v + ' < ' + n, seqFrag([listFrag(b.body, depth+1), boxFrag('act', v + ' ← ' + v + ' + 1')]), 'oui')]); }
+      return seqFrag([boxFrag('act', v + ' ← 0'), loopFrag(v + ' < ' + n, seqFrag([listFrag(b.body, depth+1), boxFrag('act', v + ' ← ' + v + ' + 1')]), 'oui', {yes:v + ' < ' + n, no:v + ' ≥ ' + n})]); }
     case 'compter': { const v = b.f.k0, a = b.in && b.in.k1 ? valText(b.in.k1) : b.f.k1, z = b.in && b.in.k2 ? valText(b.in.k2) : b.f.k2, p = b.in && b.in.k3 ? valText(b.in.k3) : b.f.k3;
-      return seqFrag([boxFrag('act', v + ' ← ' + a), loopFrag(v + ' ≤ ' + z, seqFrag([listFrag(b.body, depth+1), boxFrag('act', v + ' ← ' + v + ' + ' + p)]), 'oui')]); }
+      return seqFrag([boxFrag('act', v + ' ← ' + a), loopFrag(v + ' ≤ ' + z, seqFrag([listFrag(b.body, depth+1), boxFrag('act', v + ' ← ' + v + ' + ' + p)]), 'oui', {yes:v + ' ≤ ' + z, no:v + ' > ' + z})]); }
     case 'arret': return endFrag();
   }
   if (/^pcall_/.test(b.type)) return boxFrag(b.alg ? 'sub' : 'sub', blockText(b));
@@ -279,7 +291,7 @@ function algoSVG(sc, pad = 16){
 function algoLines(sc){
   const out = [], K = t => [t, true], T = t => [t, false];
   const L = (lvl, ...parts) => out.push({lvl, parts});
-  const cnd = b => valText(b.in && b.in.k0).replace(/^\((.*)\)$/, '$1');
+  const cnd = b => condOf(b);
   const gen = (list, lvl) => { for (const b of list){ if (!DEF[b.type]) continue;
     switch (b.type){
       case 'si': L(lvl, K('SI '), T(cnd(b)), K(' ALORS')); gen(b.body, lvl+1); L(lvl, K('FIN SI')); break;
