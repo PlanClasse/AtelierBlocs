@@ -264,7 +264,7 @@ body.acc-on{overflow:hidden}
     <div>
       <h1>Des blocs à l'écran,<br>des fiches sur papier</h1>
       <p>Assemblez un programme mBlock ou Scratch, regardez son algorigramme se dessiner en direct, puis imprimez une fiche d'exercice prête pour la classe.</p>
-      <div class="acc-btns"><button type="button" class="acc-pri" data-go="complet">Ouvrir l'atelier complet</button><a href="#acc-chemins" class="acc-sec" style="text-decoration:none;display:inline-block" onclick="event.preventDefault();document.getElementById('acc-chemins').scrollIntoView({behavior:'smooth'})">Choisir ce que je veux faire</a></div>
+      <div class="acc-btns"><button type="button" class="acc-pri" data-go="complet">Ouvrir l'atelier complet</button><a href="flux.html" class="acc-sec" style="text-decoration:none;display:inline-block" onclick="try{sessionStorage.setItem('atelier-accueil-show','1')}catch(_){}">Voir l'enchaînement des opérations</a><a href="#acc-chemins" class="acc-sec" style="text-decoration:none;display:inline-block" onclick="event.preventDefault();document.getElementById('acc-chemins').scrollIntoView({behavior:'smooth'})">Choisir ce que je veux faire</a></div>
     </div>
     <div class="acc-duo">
       <figure><div id="acc-coul"></div><figcaption>À l'écran, en couleur</figcaption></figure>

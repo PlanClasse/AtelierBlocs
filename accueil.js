@@ -68,6 +68,6 @@
   addEventListener('keydown', e => { if (e.key==='Escape' && !A.hidden && !document.querySelector('.acc-toast')) CHEMINS.complet(); });
 
   /* ---------- Démarrage ---------- */
-  const force = get(sessionStorage, SHOW)==='1'; put(sessionStorage, SHOW, null);
-  if (location.hash==='#algo' || (!force && get(localStorage, OFF)==='1')) fermer(); else ouvrir();
+  const force = get(sessionStorage, SHOW)==='1', direct = get(sessionStorage, 'atelier-accueil-go')==='complet'; put(sessionStorage, SHOW, null); put(sessionStorage, 'atelier-accueil-go', null);
+  if (location.hash==='#algo' || direct || (!force && get(localStorage, OFF)==='1')) fermer(); else ouvrir();
 })();

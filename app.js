@@ -1,6 +1,6 @@
 'use strict';
-const APP_VERSION = 'v1.8.0';
-const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './accueil.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
+const APP_VERSION = 'v1.8.1';
+const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './accueil.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
