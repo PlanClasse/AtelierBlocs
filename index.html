@@ -122,11 +122,70 @@ body.algo-only main{display:flex !important}
 .algotxt b{font-weight:700;letter-spacing:.02em}
 .set{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
 .set label{display:flex;gap:8px;align-items:center;cursor:pointer}
+/* accueil */
+#accueil{position:fixed;inset:0;z-index:9000;overflow:auto;background:#F8FAFC;color:#1E293B}
+#accueil[hidden]{display:none}
+body.acc-on{overflow:hidden}
+.acc-w{max-width:1160px;margin:0 auto;padding:0 24px}
+.acc-top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:16px 0}
+.acc-logo{font-size:22px;font-weight:800;display:flex;align-items:baseline;gap:10px}
+.acc-logo small{font-size:12px;font-weight:400;color:#64748B}
+.acc-seg{display:flex;gap:4px;align-items:center;background:#fff;border:1px solid #CBD5E1;border-radius:999px;padding:4px}
+.acc-seg span{font-size:13px;color:#64748B;padding:0 6px 0 10px}
+.acc-seg button{border:0;border-radius:999px;padding:8px 16px;font-size:14px;font-weight:700}
+.acc-seg button.on{background:#1E293B;color:#fff}
+#accueil .acc-pri{background:#2563EB;color:#fff;border-color:#2563EB;font-size:16px;font-weight:700;padding:12px 22px;border-radius:10px}
+#accueil .acc-sec{background:#fff;color:#1E293B;border:1.5px solid #1E293B;font-size:16px;font-weight:700;padding:11px 20px;border-radius:10px}
+.acc-hero{display:flex;flex-wrap:wrap;gap:36px;align-items:center;padding:28px 0 44px}
+.acc-hero>div{flex:1 1 420px;min-width:0}
+.acc-hero h1{font-size:44px;line-height:1.1;margin:0 0 16px;color:#1E293B}
+.acc-hero p{font-size:18px;line-height:1.55;margin:0 0 24px;color:#475569;max-width:560px}
+.acc-btns{display:flex;flex-wrap:wrap;gap:10px}
+.acc-duo{display:flex;flex-direction:column;gap:14px;align-items:center}
+.acc-duo svg{max-width:440px}
+.acc-duo figure,.acc-card3{margin:0;background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:16px}
+.acc-duo figcaption{font-size:13px;color:#64748B;margin-top:8px}
+.acc-band{background:#fff;border-top:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0;padding:48px 0}
+#accueil h2{font-size:30px;margin:0 0 8px;color:#1E293B}
+.acc-sub{font-size:16px;color:#475569;margin:0 0 28px}
+.acc-trois{display:flex;flex-wrap:wrap;gap:22px;align-items:stretch}
+.acc-col{flex:1 1 540px;min-width:0;display:flex;flex-direction:column;gap:22px}
+.acc-trois>.acc-alg{flex:1 1 360px}
+.acc-trois article{flex:1 1 auto;min-width:0;background:#F1F5F9;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.acc-k{font-size:12px;font-weight:700;color:#1D4ED8;text-transform:none}
+#accueil h3{font-size:20px;margin:0;color:#1E293B}
+.acc-trois .acc-card3{flex:1;overflow:auto;display:flex;justify-content:flex-start;align-items:flex-start}
+.acc-alg .acc-card3{justify-content:center}
+.acc-trois .algotxt{padding:0;font-size:14px}
+.acc-note{font-size:13px;color:#475569;margin:0}
+.acc-fiche{display:flex;flex-wrap:wrap;gap:44px;align-items:center;padding:48px 0}
+.acc-fiche>div{flex:1 1 380px;min-width:0}
+.acc-fiche ul{font-size:16px;line-height:1.7;margin:0 0 22px;padding-left:22px;color:#475569}
+.acc-papier{background:#fff;border:1px solid #CBD5E1;border-radius:4px;padding:28px 30px;max-width:480px;margin:0 auto;font-family:Aptos,"Segoe UI",Calibri,sans-serif;font-size:15px;color:#111;box-shadow:0 4px 18px rgba(0,0,0,.08)}
+.acc-papier .ent{display:flex;justify-content:space-between;font-size:13px;border-bottom:1px solid #111;padding-bottom:6px;margin-bottom:14px}
+.acc-ins{display:flex;gap:10px;align-items:center;margin:6px 0}
+.acc-case{width:24px;height:24px;border:1.5px solid #111;flex:none}
+.acc-chemins{background:#1E293B;color:#fff;padding:48px 0 56px}
+#accueil .acc-chemins h2{color:#fff}
+.acc-chemins .acc-sub{color:#CBD5E1}
+.acc-cartes{display:flex;flex-wrap:wrap;gap:16px}
+.acc-carte{flex:1 1 190px;min-width:0;background:#fff;color:#1E293B;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.acc-carte p{margin:0;font-size:14px;color:#475569;flex:1}
+.acc-carte i{display:block;width:40px;height:8px;border-radius:4px}
+.acc-carte button{margin-top:6px;padding:10px;font-size:14px;font-weight:700;background:#1E293B;color:#fff;border-color:#1E293B;border-radius:8px}
+.acc-carte button.acc-bt{background:#fff;color:#1E293B;border:1.5px solid #1E293B}
+.acc-tag{float:right;font-size:11px;font-weight:700;color:#9A3412;background:#FFEDD5;padding:2px 9px;border-radius:999px}
+.acc-pied{display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;margin-top:26px;font-size:14px;color:#CBD5E1}
+.acc-pied a{color:#fff;font-weight:700}
+.acc-pied label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.acc-toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:9600;background:#1D4ED8;color:#fff;font-weight:700;font-size:15px;padding:14px 22px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:90vw;text-align:center}
+@media (max-width:600px){.acc-hero h1{font-size:32px}}
 </style>
 </head>
 <body data-view="prog">
 <header>
   <h1>🧩 Atelier blocs</h1>
+  <button id="bHome" title="Revenir à la page d'accueil">🏠 Accueil</button>
   <button class="tab on" data-v="prog">🧩 Programmes</button>
   <button class="tab" data-v="doc">📄 Fiche</button>
   <span class="sep"></span>
@@ -176,12 +235,80 @@ body.algo-only main{display:flex !important}
   </div>
   <div id="page"></div>
 </section>
+<div id="accueil" role="dialog" aria-modal="true" aria-label="Accueil de l'Atelier blocs" hidden>
+<div class="acc-w">
+  <div class="acc-top">
+    <div class="acc-logo">🧩 Atelier blocs <small id="acc-ver"></small></div>
+    <div class="acc-seg" role="group" aria-label="Langage"><span>Langage</span><button type="button" data-lang="mblock">mBlock</button><button type="button" data-lang="scratch">Scratch 3</button></div>
+  </div>
+  <section class="acc-hero">
+    <div>
+      <h1>Des blocs à l'écran,<br>des fiches sur papier</h1>
+      <p>Assemblez un programme mBlock ou Scratch, regardez son algorigramme se dessiner en direct, puis imprimez une fiche d'exercice prête pour la classe.</p>
+      <div class="acc-btns"><button type="button" class="acc-pri" data-go="complet">Ouvrir l'atelier complet</button><a href="#acc-chemins" class="acc-sec" style="text-decoration:none;display:inline-block" onclick="event.preventDefault();document.getElementById('acc-chemins').scrollIntoView({behavior:'smooth'})">Choisir ce que je veux faire</a></div>
+    </div>
+    <div class="acc-duo">
+      <figure><div id="acc-coul"></div><figcaption>À l'écran, en couleur</figcaption></figure>
+      <figure><div id="acc-nb"></div><figcaption>Pour l'impression, en noir et blanc</figcaption></figure>
+    </div>
+  </section>
+</div>
+<section class="acc-band"><div class="acc-w">
+  <h2>Un même programme, trois façons de le montrer</h2>
+  <p class="acc-sub" id="acc-mur-titre"></p>
+  <div class="acc-trois">
+    <div class="acc-col"><article><div class="acc-k">1. Les blocs</div><h3>Le programme</h3><div class="acc-card3" id="acc-ex-blocs"></div></article>
+    <article><div class="acc-k">3. En langage naturel</div><h3>L'algorithme</h3><div class="acc-card3"><div class="algotxt" id="acc-ex-texte"></div></div><p class="acc-note">Les phrases suivent les blocs : modifier un bloc met le texte à jour.</p></article></div>
+    <article class="acc-alg"><div class="acc-k">2. En direct, à côté des blocs</div><h3>L'algorigramme</h3><div class="acc-card3" id="acc-ex-algo"></div><p class="acc-note">Style classique ou SysML simplifié (⚙). Aussi dans une autre fenêtre, pour le tableau.</p></article>
+  </div>
+</div></section>
+<div class="acc-w"><section class="acc-fiche">
+  <div>
+    <div class="acc-k">Pour la classe</div>
+    <h2>Une fiche d'exercice en quelques clics</h2>
+    <ul>
+      <li>Consignes et commentaires avant et après le programme</li>
+      <li>Programme assemblé ou instructions éclatées, mélangées</li>
+      <li>Blocs cachés, valeurs à compléter</li>
+      <li>Algorigramme ou algorithme dans la fiche</li>
+      <li>Noir et blanc pour l'impression, export .docx</li>
+    </ul>
+    <button type="button" class="acc-pri" data-go="fiche">Créer une fiche</button>
+  </div>
+  <div>
+    <div class="acc-papier">
+      <div class="ent"><span>Nom : ....................</span><span>Classe : ......</span></div>
+      <div style="font-weight:700;font-size:17px;margin-bottom:6px">Exercice : le carré</div>
+      <p style="margin:0 0 10px;line-height:1.45">Numérote les instructions dans l'ordre pour tracer un carré.</p>
+      <div id="acc-fiche-ins"></div>
+      <p style="margin:16px 0 8px;font-weight:700">Complète le bloc pour que le côté dure 2 secondes.</p>
+      <div id="acc-fiche-trou"></div>
+    </div>
+  </div>
+</section></div>
+<section class="acc-chemins" id="acc-chemins"><div class="acc-w">
+  <h2>Que voulez-vous faire ?</h2>
+  <p class="acc-sub">Chaque choix ouvre l'atelier sur la bonne partie.</p>
+  <div class="acc-cartes">
+    <div class="acc-carte"><i style="background:#2563EB"></i><h3>Assembler un programme</h3><p>Les blocs seuls, avec la capture en image.</p><button type="button" data-go="prog">Ouvrir</button></div>
+    <div class="acc-carte"><i style="background:#F59E0B"></i><h3>Créer une fiche d'exercice</h3><p>Consignes, instructions éclatées, noir et blanc, .docx.</p><button type="button" data-go="fiche">Ouvrir</button></div>
+    <div class="acc-carte"><i style="background:#0891B2"></i><h3>Algorigramme et algorithme</h3><p>À côté des blocs ou dans une autre fenêtre.</p><button type="button" data-go="algo">Ouvrir</button></div>
+    <div class="acc-carte"><i style="background:#FF6680"></i><h3>Créer mes blocs</h3><p>Des blocs personnalisés, avec paramètres.</p><button type="button" data-go="mesblocs">Ouvrir</button></div>
+    <div class="acc-carte"><i style="background:#C2410C"></i><h3>Évaluation à trous <span class="acc-tag">Bientôt</span></h3><p>Des cases vides à compléter, avec la version corrigée.</p><button type="button" class="acc-bt" data-go="bientot">Découvrir</button></div>
+  </div>
+  <div class="acc-pied">
+    <span>Ou bien <a href="#" data-go="complet">ouvrez l'atelier complet</a>, avec tous les outils.</span>
+    <label><input type="checkbox" id="acc-demarrage"> Afficher cet accueil à l'ouverture</label>
+  </div>
+</div></section>
+</div>
 <div id="drag"><svg id="dsv"></svg></div>
 <script src="docx.iife.js"></script>
 <script>if (!window.docx){ const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/docx@9.16.0/dist/index.iife.js'; document.head.append(s); }</script>
 <script src="catalogue.js"></script>
 <script src="algo.js"></script>
 <script src="app.js"></script>
+<script src="accueil.js"></script>
 <script>if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !/claude|claudeusercontent/.test(location.host)) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>
 </html>
