@@ -579,6 +579,9 @@ function itemImages(it){ // [{doc, id}] pour l'aperçu et l'export
   if (it.mode==='algo'){ const st = ALG.style; if (it.algoStyle) ALG.style = it.algoStyle; const d = algoSVG(sc, 6); ALG.style = st; return d ? [{doc:d, algo:true}] : []; }
   return instrOf(it, sc).map(b => { const o = newOut(opt); renderBlock(b, 0, 0, o); return {doc:svgDoc(o, 2), id:b.id}; });
 }
+// cases à numéroter devant les instructions mises à plat (activées par défaut)
+const numOn = it => (it.mode==='line' || it.mode==='lines') && it.num!==false;
+const CASE_DOC = {w:26, h:26, svg:'<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><rect x="1.5" y="1.5" width="23" height="23" fill="#fff" stroke="#111" stroke-width="2"/></svg>'};
 function drawDoc(){
   const page = $('#page'); page.innerHTML = '';
   if (!S.doc.length) page.innerHTML = '<p class="muted" style="text-align:center;margin-top:40px">La fiche est vide. Ajoutez un texte ou un programme avec les boutons ci-dessus.<br>Astuce : clic droit sur un programme de la zone de travail → « Ajouter ce programme à la fiche ».</p>';
@@ -606,7 +609,8 @@ function drawDoc(){
       opts.append(name, sel);
       if (it.mode==='algo'){ const ss = document.createElement('select'); [['classic','Classique'],['sysml','SysML simplifié']].forEach(([v,l]) => ss.add(new Option(l, v, false, (it.algoStyle||ALG.style)===v))); ss.onchange = () => { it.algoStyle = ss.value; save(); drawDoc(); }; opts.append(ss); }
       if (it.mode!=='assemble' && it.mode!=='algo'){ opts.append(chk('Mélanger', 'shuffle', 'Mélange l\'ordre des instructions pour ne pas donner la réponse'));
-        if (it.shuffle){ const rb = document.createElement('button'); rb.textContent = '🔀'; rb.title = 'Mélanger autrement'; rb.onclick = () => { it.seed = Math.floor(Math.random()*1e6); save(); drawDoc(); }; opts.append(rb); } }
+        if (it.shuffle){ const rb = document.createElement('button'); rb.textContent = '🔀'; rb.title = 'Mélanger autrement'; rb.onclick = () => { it.seed = Math.floor(Math.random()*1e6); save(); drawDoc(); }; opts.append(rb); }
+        if (it.mode!=='algotext'){ const nc = chk('Cases à numéroter', 'num', 'Une case vide devant chaque instruction, pour écrire sa place dans le programme'); nc.querySelector('input').checked = numOn(it); opts.append(nc); } }
       if (it.mode!=='algo' && it.mode!=='algotext') opts.append(chk('Masquer les valeurs', 'blankV', 'Nombres et textes vides'), chk('Masquer les menus', 'blankD', 'Menus déroulants et couleurs vides'), chk('Noir et blanc', 'bw'));
       const sz = document.createElement('label'); sz.innerHTML = 'Taille '; const rg = document.createElement('input'); rg.type = 'range'; rg.min = 50; rg.max = 150; rg.step = 10; rg.value = Math.round((it.scale||1)*100); rg.oninput = () => { it.scale = rg.value/100; save(); drawDoc(); }; sz.append(rg); opts.append(sz);
       if (it.mode==='algotext'){ const tv = document.createElement('div'); tv.className = 'algotxt'; tv.innerHTML = algoHTML(sc); box.append(tools, opts, tv); page.append(box); return; }
@@ -614,7 +618,8 @@ function drawDoc(){
       const imgs = itemImages(it), k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1), hid = new Set(it.hide||[]);
       for (const im of imgs){ const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
         const sp = document.createElement('span'); sp.className = 'pimg' + (im.id && hid.has(im.id) ? ' off' : '');
-        sp.innerHTML = im.doc.svg.replace('<svg ', `<svg style="width:${w}px;height:${h}px" `);
+        sp.innerHTML = (im.id && numOn(it) ? `<span class="ncase" style="width:${Math.round(22*(it.scale||1))}px;height:${Math.round(22*(it.scale||1))}px"></span>` : '') + im.doc.svg.replace('<svg ', `<svg style="width:${w}px;height:${h}px" `);
+        if (im.id && numOn(it)) sp.classList.add('num');
         if (im.id){ sp.title = hid.has(im.id) ? 'Instruction cachée (clic pour la remettre)' : 'Clic pour cacher cette instruction';
           sp.onclick = () => { const s = new Set(it.hide||[]); s.has(im.id) ? s.delete(im.id) : s.add(im.id); it.hide = [...s]; save(); drawDoc(); }; }
         view.append(sp); }
@@ -643,7 +648,7 @@ async function exportDocx(){
   const {Document, Packer, Paragraph, TextRun, ImageRun, PageBreak} = window.docx;
   const btn = $('#bDocx'); btn.disabled = true; btn.textContent = '⏳ Création…';
   try {
-    const children = [];
+    const children = [], caseData = new Uint8Array(await (await toPNG(CASE_DOC, 3)).arrayBuffer());
     for (const it of S.doc){
       if (it.t==='text'){ for (const runs of htmlRuns(it.html)) children.push(new Paragraph({spacing:{after:80}, children: runs.map(r => new TextRun({text:r.text, bold:r.b, italics:r.i, underline:r.u ? {} : undefined}))})); }
       else if (it.t==='break') children.push(new Paragraph({children:[new PageBreak()]}));
@@ -655,10 +660,12 @@ async function exportDocx(){
         for (const im of imgs){ if (im.id && hid.has(im.id)) continue;
           const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
           const data = new Uint8Array(await (await toPNG(im.doc, 3)).arrayBuffer());
-          runs.push(new ImageRun({type:'png', data, transformation:{width:Math.round(w), height:Math.round(h)}})); }
-        if (it.mode==='lines') runs.forEach(r => children.push(new Paragraph({spacing:{after:60}, children:[r]})));
-        else if (it.mode==='line'){ const ch = []; runs.forEach((r, n) => { if (n) ch.push(new TextRun({text:'    '})); ch.push(r); }); children.push(new Paragraph({spacing:{after:120}, children:ch})); }
-        else children.push(new Paragraph({spacing:{before:60, after:120}, children:runs}));
+          const img = new ImageRun({type:'png', data, transformation:{width:Math.round(w), height:Math.round(h)}});
+          if (im.id && numOn(it)){ const c = Math.round(18*(it.scale||1)); runs.push([new ImageRun({type:'png', data:caseData, transformation:{width:c, height:c}}), new TextRun({text:'  '}), img]); }
+          else runs.push([img]); }
+        if (it.mode==='lines') runs.forEach(r => children.push(new Paragraph({spacing:{after:60}, children:r})));
+        else if (it.mode==='line'){ const ch = []; runs.forEach((r, n) => { if (n) ch.push(new TextRun({text:'    '})); ch.push(...r); }); children.push(new Paragraph({spacing:{after:120}, children:ch})); }
+        else children.push(new Paragraph({spacing:{before:60, after:120}, children:runs.flat()}));
       }
     }
     if (!children.length) children.push(new Paragraph({children:[]}));

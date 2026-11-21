@@ -96,6 +96,8 @@ header select{font:inherit;font-weight:600;padding:5px 8px;border-radius:8px;bor
 .pimg{display:inline-block;line-height:0}
 .pview.line .pimg,.pview.lines .pimg{cursor:pointer;border-radius:6px;outline:2px solid transparent}
 .pview.line .pimg:hover,.pview.lines .pimg:hover{outline-color:#93C5FD}
+.pimg.num{display:inline-flex;align-items:center;gap:8px;line-height:0}
+.ncase{display:inline-block;flex:none;border:1.5px solid #111;background:#fff;box-sizing:border-box}
 .pimg.off{opacity:.18;outline:2px dashed #F87171 !important}
 .maj-bandeau{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:9500;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 20px);padding:8px 10px 8px 14px;border-radius:12px;background:#1D4ED8;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:13px;font-weight:600}
 .maj-bandeau .maj-ok{border:0;border-radius:8px;background:#fff;color:#1D4ED8;font-weight:800;padding:6px 12px;font:inherit;font-weight:800;cursor:pointer}
@@ -126,7 +128,7 @@ body.algo-only main{display:flex !important}
 #accueil{position:fixed;inset:0;z-index:9000;overflow:auto;background:#F8FAFC;color:#1E293B}
 #accueil[hidden]{display:none}
 body.acc-on{overflow:hidden}
-.acc-w{max-width:1160px;margin:0 auto;padding:0 24px}
+.acc-w{max-width:1880px;margin:0 auto;padding:0 clamp(16px,3.5vw,64px)}
 .acc-top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:16px 0}
 .acc-logo{font-size:22px;font-weight:800;display:flex;align-items:baseline;gap:10px}
 .acc-logo small{font-size:12px;font-weight:400;color:#64748B}
@@ -138,10 +140,11 @@ body.acc-on{overflow:hidden}
 #accueil .acc-sec{background:#fff;color:#1E293B;border:1.5px solid #1E293B;font-size:16px;font-weight:700;padding:11px 20px;border-radius:10px}
 .acc-hero{display:flex;flex-wrap:wrap;gap:36px;align-items:center;padding:28px 0 44px}
 .acc-hero>div{flex:1 1 420px;min-width:0}
+.acc-hero>.acc-duo{flex:1.6 1 460px}
 .acc-hero h1{font-size:44px;line-height:1.1;margin:0 0 16px;color:#1E293B}
 .acc-hero p{font-size:18px;line-height:1.55;margin:0 0 24px;color:#475569;max-width:560px}
 .acc-btns{display:flex;flex-wrap:wrap;gap:10px}
-.acc-duo{display:flex;flex-direction:column;gap:14px;align-items:center}
+.acc-duo{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:flex-start}
 .acc-duo svg{max-width:440px}
 .acc-duo figure,.acc-card3{margin:0;background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:16px}
 .acc-duo figcaption{font-size:13px;color:#64748B;margin-top:8px}
@@ -169,7 +172,7 @@ body.acc-on{overflow:hidden}
 #accueil .acc-chemins h2{color:#fff}
 .acc-chemins .acc-sub{color:#CBD5E1}
 .acc-cartes{display:flex;flex-wrap:wrap;gap:16px}
-.acc-carte{flex:1 1 190px;min-width:0;background:#fff;color:#1E293B;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px}
+.acc-carte{flex:1 1 200px;min-width:0;background:#fff;color:#1E293B;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px}
 .acc-carte p{margin:0;font-size:14px;color:#475569;flex:1}
 .acc-carte i{display:block;width:40px;height:8px;border-radius:4px}
 .acc-carte button{margin-top:6px;padding:10px;font-size:14px;font-weight:700;background:#1E293B;color:#fff;border-color:#1E293B;border-radius:8px}
@@ -179,6 +182,22 @@ body.acc-on{overflow:hidden}
 .acc-pied a{color:#fff;font-weight:700}
 .acc-pied label{display:flex;gap:6px;align-items:center;cursor:pointer}
 .acc-toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:9600;background:#1D4ED8;color:#fff;font-weight:700;font-size:15px;padding:14px 22px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:90vw;text-align:center}
+.acc-carte.acc-full{background:#2563EB;color:#fff}
+.acc-carte.acc-full h3{color:#fff}.acc-carte.acc-full p{color:#DBEAFE}
+.acc-carte.acc-full button{background:#fff;color:#1D4ED8;border-color:#fff}
+.acc-topd{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#accueil .acc-top .acc-pri{font-size:14px;padding:9px 16px}
+@media (min-width:1400px){
+ .acc-hero h1{font-size:54px}
+ .acc-col{display:contents}
+ .acc-trois article{flex:1 1 0}
+ .acc-trois>.acc-col>article:first-child{order:1;flex:1.25 1 0}
+ .acc-trois>.acc-alg{order:2;flex:1 1 0}
+ .acc-trois .acc-txtart{order:3}
+ .acc-fiche>div:first-child{flex:1 1 380px}
+ .acc-fiche>div:last-child{flex:1.4 1 520px}
+ .acc-papier{max-width:560px}
+}
 @media (max-width:600px){.acc-hero h1{font-size:32px}}
 </style>
 </head>
@@ -239,7 +258,7 @@ body.acc-on{overflow:hidden}
 <div class="acc-w">
   <div class="acc-top">
     <div class="acc-logo">🧩 Atelier blocs <small id="acc-ver"></small></div>
-    <div class="acc-seg" role="group" aria-label="Langage"><span>Langage</span><button type="button" data-lang="mblock">mBlock</button><button type="button" data-lang="scratch">Scratch 3</button></div>
+    <div class="acc-topd"><div class="acc-seg" role="group" aria-label="Langage"><span>Langage</span><button type="button" data-lang="mblock">mBlock</button><button type="button" data-lang="scratch">Scratch 3</button></div><button type="button" class="acc-pri" data-go="complet">Atelier complet →</button></div>
   </div>
   <section class="acc-hero">
     <div>
@@ -258,7 +277,7 @@ body.acc-on{overflow:hidden}
   <p class="acc-sub" id="acc-mur-titre"></p>
   <div class="acc-trois">
     <div class="acc-col"><article><div class="acc-k">1. Les blocs</div><h3>Le programme</h3><div class="acc-card3" id="acc-ex-blocs"></div></article>
-    <article><div class="acc-k">3. En langage naturel</div><h3>L'algorithme</h3><div class="acc-card3"><div class="algotxt" id="acc-ex-texte"></div></div><p class="acc-note">Les phrases suivent les blocs : modifier un bloc met le texte à jour.</p></article></div>
+    <article class="acc-txtart"><div class="acc-k">3. En langage naturel</div><h3>L'algorithme</h3><div class="acc-card3"><div class="algotxt" id="acc-ex-texte"></div></div><p class="acc-note">Les phrases suivent les blocs : modifier un bloc met le texte à jour.</p></article></div>
     <article class="acc-alg"><div class="acc-k">2. En direct, à côté des blocs</div><h3>L'algorigramme</h3><div class="acc-card3" id="acc-ex-algo"></div><p class="acc-note">Style classique ou SysML simplifié (⚙). Aussi dans une autre fenêtre, pour le tableau.</p></article>
   </div>
 </div></section>
@@ -290,6 +309,7 @@ body.acc-on{overflow:hidden}
   <h2>Que voulez-vous faire ?</h2>
   <p class="acc-sub">Chaque choix ouvre l'atelier sur la bonne partie.</p>
   <div class="acc-cartes">
+    <div class="acc-carte acc-full"><i style="background:#fff"></i><h3>Atelier complet</h3><p>Tous les outils : blocs, algorigramme, fiche, mes blocs.</p><button type="button" data-go="complet">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#2563EB"></i><h3>Assembler un programme</h3><p>Les blocs seuls, avec la capture en image.</p><button type="button" data-go="prog">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#F59E0B"></i><h3>Créer une fiche d'exercice</h3><p>Consignes, instructions éclatées, noir et blanc, .docx.</p><button type="button" data-go="fiche">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#0891B2"></i><h3>Algorigramme et algorithme</h3><p>À côté des blocs ou dans une autre fenêtre.</p><button type="button" data-go="algo">Ouvrir</button></div>
