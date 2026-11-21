@@ -6,7 +6,7 @@
    [oui] / [non] sur les chemins). « Répéter n fois » : version détaillée avec un compteur. */
 const AF = '13px "Helvetica Neue", Helvetica, Arial, sans-serif';
 const acv = document.createElement('canvas').getContext('2d'); acv.font = AF;
-const atw = s => acv.measureText(s).width;
+const atw = s => (typeof EXO_ALG!=='undefined' && EXO_ALG && String(s).includes('\u0001')) ? tokAtw(s) : acv.measureText(s).width;
 const G = 26;                     // espace vertical entre deux éléments (avec la flèche)
 const INK = '#1E293B';
 const COLNAMES = {'#E3001B':'rouge','#F5A623':'orange','#F8E71C':'jaune','#7ED321':'vert','#50E3C2':'cyan','#4A90E2':'bleu','#9013FE':'violet','#FF5AC8':'rose','#FFFFFF':'blanc','#000000':'noir'};
@@ -127,7 +127,7 @@ function procCallText(b){ const pr = (S.procs||[]).find(x => 'pcall_'+x.id===b.t
 function procHeadText(b){ const pr = (S.procs||[]).find(x => 'pdef_'+x.id===b.type); if (!pr) return '?';
   const ps = pr.params.filter(p => p.t!=='l').map(p => p.name); return pr.name + (ps.length ? ' (' + ps.join(', ') + ')' : ''); }
 // Textes personnalisés : abandonnés si le bloc a été modifié depuis (b.asrc = texte automatique au moment de la saisie)
-function chkAlg(b, auto){ if (b.asrc!==undefined && b.asrc!==auto){ delete b.alg; delete b.gy; delete b.gn; delete b.asrc; } }
+function chkAlg(b, auto){ if (typeof EXO_ALG!=='undefined' && EXO_ALG) return; if (b.asrc!==undefined && b.asrc!==auto){ delete b.alg; delete b.gy; delete b.gn; delete b.asrc; } }
 function blockText(b){
   if (b.alg){ const a = b.alg; delete b.alg; const t = blockText(b); b.alg = a; chkAlg(b, t); return b.alg || t; }
   if (/^pcall_/.test(b.type)) return procCallText(b);
@@ -162,10 +162,11 @@ function wrap(t, max = 24){
   for (const w of words){ if (cur && atw(cur + ' ' + w) > max * 7.2){ lines.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; }
   if (cur) lines.push(cur); return lines.length ? lines : [''];
 }
+const LH = lines => lines.some(l => String(l).includes('\u0001')) ? 26 : 16;   // hauteur d'une ligne de texte (plus grande avec des trous)
 const aesc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function txt(lines, cx, cy, anchor = 'middle', cls = ''){
-  const n = lines.length, lh = 16, y0 = cy - (n-1)*lh/2;
-  return lines.map((l, i) => `<text x="${cx}" y="${y0 + i*lh}" text-anchor="${anchor}" dominant-baseline="central"${cls ? ` class="${cls}"` : ''}>${aesc(l)}</text>`).join('');
+  const n = lines.length, lh = LH(lines), y0 = cy - (n-1)*lh/2;
+  return lines.map((l, i) => String(l).includes('\u0001') ? tokLine(l, cx, y0 + i*lh, anchor, cls, true) : `<text x="${cx}" y="${y0 + i*lh}" text-anchor="${anchor}" dominant-baseline="central"${cls ? ` class="${cls}"` : ''}>${aesc(l)}</text>`).join('');
 }
 
 /* ---------- Fragments de mise en page ----------
@@ -173,7 +174,7 @@ function txt(lines, cx, cy, anchor = 'middle', cls = ''){
 let ST = 'classic', CTR = 0;
 const line = (pts, arrow = true) => `<path d="M ${pts.map(p => p.join(' ')).join(' L ')}" fill="none" stroke="${INK}" stroke-width="1.4"${arrow ? ' marker-end="url(#af-arr)"' : ''}/>`;
 const labg = (g, x, y, t, anchor = 'start') => { if (ST==='sysml'){ if (!g) return ''; t = '[' + (t==='oui' ? g.yes : g.no) + ']'; } return lab(x, y, t, anchor); };
-const lab = (x, y, t, anchor = 'start') => `<text x="${x}" y="${y}" text-anchor="${anchor}" class="lab">${aesc(t)}</text>`;
+const lab = (x, y, t, anchor = 'start') => String(t).includes('\u0001') ? tokLine(t, x, y, anchor, 'lab', false) : `<text x="${x}" y="${y}" text-anchor="${anchor}" class="lab">${aesc(t)}</text>`;
 const MR = 15;   // demi-taille des losanges SysML (décision et fusion : même taille)
 const mR = () => ST==='sysml' ? MR : 0;
 const mergeMark = (x, y) => ST==='sysml' ? `<path d="M ${x} ${y-MR} L ${x+MR} ${y} L ${x} ${y+MR} L ${x-MR} ${y} z" fill="#fff" stroke="${INK}" stroke-width="1.6"/>` : '';
@@ -183,10 +184,10 @@ const loopIn = (cx, y, T, mc) => ST==='sysml' ? line([[cx, y], [cx, y+mc-MR]], f
 
 function boxFrag(kind, text){
   const lines = wrap(text, kind==='term' ? 32 : 24); const tw0 = Math.max(...lines.map(atw));
-  let w = Math.max(110, tw0 + 30), h = Math.max(38, lines.length*16 + 18);
+  let w = Math.max(110, tw0 + 30), h = Math.max(38, lines.length*LH(lines) + 18);
   if (kind==='io' && ST==='classic') w += 24;
   if (kind==='sub' && ST==='classic') w += 16;
-  if (kind==='term' && ST==='classic'){ w = Math.max(90, tw0 * 1.18 + 44); h = Math.max(36, lines.length*16 + 16); }
+  if (kind==='term' && ST==='classic'){ w = Math.max(90, tw0 * 1.18 + 44); h = Math.max(36, lines.length*LH(lines) + 16); }
   return {w, h, cx:w/2, exit:true, draw:(x, y) => {
     let s = '';
     if (ST==='classic'){
@@ -226,7 +227,7 @@ function diamond(cond){
   if (ST==='sysml')   // SysML : losange vide, seules les gardes des chemins portent le test
     return {w:30, h:30, tw:0, draw:(cx, y) => `<path d="M ${cx} ${y} L ${cx+15} ${y+15} L ${cx} ${y+30} L ${cx-15} ${y+15} z" fill="#fff" stroke="${INK}" stroke-width="1.6"/>`};
   const t = cond + ' ?', lines = wrap(t, 18), tw0 = Math.max(...lines.map(atw));
-  const w = Math.max(120, tw0 * 1.55 + 36), h = Math.max(60, lines.length*16*1.7 + 24);
+  const w = Math.max(120, tw0 * 1.55 + 36), h = Math.max(60, lines.length*LH(lines)*1.7 + 24);
   return {w, h, draw:(cx, y) => `<path d="M ${cx} ${y} L ${cx+w/2} ${y+h/2} L ${cx} ${y+h} L ${cx-w/2} ${y+h/2} z" fill="#fff" stroke="${INK}" stroke-width="1.6"/>` + txt(lines, cx, y + h/2)};
 }
 const gw = (g, k) => (ST==='sysml' && g) ? atw('[' + g[k] + ']') * 0.88 + 4 : 24;   // largeur d'une garde
@@ -311,7 +312,7 @@ function negOf(b, c){ const x = b.in && b.in.k0; if (!b.alg && x && !x.alg && NE
 function guards(b, c){ c = c || condOf(b); return {yes: b.gy || c, no: b.gn || negOf(b, c)}; }
 function blockFrag(b, depth = 0){
   const d = DEF[b.type]; if (!d) return null;
-  const cond = () => condOf(b), g = () => guards(b);
+  const cond = () => exoCond(b, () => condOf(b)), g = () => { if (!EXO_ALG) return guards(b); const c = cond(); return c.includes('\u0001') ? {yes:c, no:negCond(c)} : guards(b, c); };
   switch (b.type){
     case 'si': return ifFrag(cond(), listFrag(b.body, depth), g());
     case 'sinon': return ifElseFrag(cond(), listFrag(b.body, depth), listFrag(b.body2, depth), g());
@@ -319,22 +320,23 @@ function blockFrag(b, depth = 0){
     case 'tantque': return loopFrag(cond(), listFrag(b.body, depth+1), 'oui', g());
     case 'attJusqua': return waitFrag(cond(), g());
     case 'toujours': return foreverFrag(listFrag(b.body, depth+1));
-    case 'repeter': { const v = CNT[depth % CNT.length], n = b.in && b.in.k0 ? valText(b.in.k0) : b.f.k0;
+    case 'repeter': { const v = CNT[depth % CNT.length], n = exoCond(b, () => b.in && b.in.k0 ? valText(b.in.k0) : String(b.f.k0));
       return seqFrag([boxFrag('act', v + ' ← 0'), loopFrag(v + ' < ' + n, seqFrag([listFrag(b.body, depth+1), boxFrag('act', v + ' ← ' + v + ' + 1')]), 'oui', {yes:v + ' < ' + n, no:v + ' ≥ ' + n})]); }
-    case 'compter': { const v = b.f.k0, a = b.in && b.in.k1 ? valText(b.in.k1) : b.f.k1, z = b.in && b.in.k2 ? valText(b.in.k2) : b.f.k2, p = b.in && b.in.k3 ? valText(b.in.k3) : b.f.k3;
+    case 'compter': { const v = b.f.k0, a = exoVal(b, () => fv(b,'k1')), z = exoVal(b, () => fv(b,'k2')), p = exoVal(b, () => fv(b,'k3'));
       return seqFrag([boxFrag('act', v + ' ← ' + a), loopFrag(v + ' ≤ ' + z, seqFrag([listFrag(b.body, depth+1), boxFrag('act', v + ' ← ' + v + ' + ' + p)]), 'oui', {yes:v + ' ≤ ' + z, no:v + ' > ' + z})]); }
     case 'arret': return endFrag();
   }
-  if (/^pcall_/.test(b.type)) return boxFrag(b.alg ? 'sub' : 'sub', blockText(b));
+  if (/^pcall_/.test(b.type)) return boxFrag('sub', exoT(b, () => blockText(b)));
   if (d.sh==='hat') return null;
-  if (d.sh==='rep' || d.sh==='bool') return boxFrag('act', valText(b));
+  if (d.sh==='rep' || d.sh==='bool') return boxFrag('act', exoT(b, () => valText(b)));
   const io = ALG.io && (IO_CATS.has(d.cat) || IO_IDS.has(b.type));
-  return boxFrag(io ? 'io' : 'act', blockText(b));
+  return boxFrag(io ? 'io' : 'act', exoT(b, () => blockText(b)));
 }
 function scriptFrag(sc){
   const first = sc.list[0]; if (!first) return null;
   const hat = DEF[first.type] && DEF[first.type].sh==='hat';
-  const start = hat ? startFrag(ST==='classic' ? (first.type==='demarre' && !first.alg ? 'DÉBUT' : 'DÉBUT : ' + hatText(first)) : (first.type==='demarre' && !first.alg ? '' : hatText(first))) : startFrag(ST==='classic' ? 'DÉBUT' : '');
+  const ht = () => exoT(first, () => hatText(first));
+  const start = hat ? startFrag(ST==='classic' ? (first.type==='demarre' && !first.alg && !aTrous(first) ? 'DÉBUT' : 'DÉBUT : ' + ht()) : (first.type==='demarre' && !first.alg && !aTrous(first) ? '' : ht())) : startFrag(ST==='classic' ? 'DÉBUT' : '');
   const body = listFrag(hat ? sc.list.slice(1) : sc.list, 0);
   const parts = [start, body]; if (body.exit) parts.push(endFrag());
   return seqFrag(parts);
@@ -354,36 +356,38 @@ function algoSVG(sc, pad = 16){
 function algoLines(sc){
   const out = [], K = t => [t, true], T = t => [t, false];
   const L = (lvl, ...parts) => out.push({lvl, parts});
+  const C = (b, lvl, ...parts) => out.push({lvl, parts:exoCtl(b, parts)}), E = (b, lvl, ...parts) => out.push({lvl, parts:exoFin(b, parts)});
   const cnd = b => condOf(b);
   // conditions : opérateurs booléens ET, OU, NON en gras et en majuscules (comme SI, ALORS…)
   const BOOL = {et:' ET ', ou:' OU '};
   const condP = (x, top) => {
     if (!x) return [T('…')];
-    if (x.alg || !(BOOL[x.type] || x.type==='pas')) { const t = valText(x); return [T(top ? t.replace(/^\((.*)\)$/, '$1') : t)]; }
+    if (x.alg || !(BOOL[x.type] || x.type==='pas') || (EXO_ALG && aTrous(x) && x.tr.ligne)) { const f = () => { const t = valText(x); return top ? t.replace(/^\((.*)\)$/, '$1') : t; }; return [T(exoT(x, f))]; }
     const sub = c => { const p = condP(c, false); return c && !c.alg && (BOOL[c.type]) ? [T('('), ...p, T(')')] : p; };
-    if (x.type==='pas') return [K('NON '), ...sub(x.in && x.in.k0)];
-    return [...sub(x.in && x.in.k0), K(BOOL[x.type]), ...sub(x.in && x.in.k1)]; };
-  const cndP = b => { const c = cnd(b); return b.alg ? [T(c)] : condP(b.in && b.in.k0, true); };
+    const kw = t => EXO_ALG && aTrous(x) && (x.tr.p || {}).nom ? T((t[0]===' ' ? ' ' : '') + exoTok(x, 'nom', t.trim()) + ' ') : K(t);
+    if (x.type==='pas') return [kw('NON '), ...sub(x.in && x.in.k0)];
+    return [...sub(x.in && x.in.k0), kw(BOOL[x.type]), ...sub(x.in && x.in.k1)]; };
+  const cndP = b => { if (EXO_ALG && aTrous(b) && (b.tr.ligne || (b.tr.p || {}).k0 || b.alg)) return [T(exoCond(b, () => cnd(b)))]; const c = cnd(b); return b.alg ? [T(c)] : condP(b.in && b.in.k0, true); };
   const gen = (list, lvl) => { for (const b of list){ if (!DEF[b.type]) continue;
     switch (b.type){
-      case 'si': L(lvl, K('SI '), ...cndP(b), K(' ALORS')); gen(b.body, lvl+1); L(lvl, K('FIN SI')); break;
-      case 'sinon': L(lvl, K('SI '), ...cndP(b), K(' ALORS')); gen(b.body, lvl+1); L(lvl, K('SINON')); gen(b.body2, lvl+1); L(lvl, K('FIN SI')); break;
-      case 'repeter': L(lvl, K('RÉPÉTER '), T(fv(b,'k0')), K(' FOIS')); gen(b.body, lvl+1); L(lvl, K('FIN RÉPÉTER')); break;
-      case 'compter': L(lvl, K('POUR '), T(b.f.k0), K(' DE '), T(fv(b,'k1')), K(' À '), T(fv(b,'k2')), K(' PAR PAS DE '), T(fv(b,'k3'))); gen(b.body, lvl+1); L(lvl, K('FIN POUR')); break;
-      case 'jusqua': L(lvl, K('RÉPÉTER JUSQU\'À '), ...cndP(b)); gen(b.body, lvl+1); L(lvl, K('FIN RÉPÉTER')); break;
-      case 'tantque': L(lvl, K('TANT QUE '), ...cndP(b), K(' FAIRE')); gen(b.body, lvl+1); L(lvl, K('FIN TANT QUE')); break;
-      case 'toujours': L(lvl, K('RÉPÉTER POUR TOUJOURS')); gen(b.body, lvl+1); L(lvl, K('FIN RÉPÉTER')); break;
-      case 'attJusqua': L(lvl, K('ATTENDRE JUSQU\'À '), ...cndP(b)); break;
-      case 'arret': L(lvl, K('ARRÊTER LE PROGRAMME')); break;
-      default: if (DEF[b.type].sh!=='hat') L(lvl, T(blockText(b)));
+      case 'si': C(b, lvl, K('SI '), ...cndP(b), K(' ALORS')); gen(b.body, lvl+1); E(b, lvl, K('FIN SI')); break;
+      case 'sinon': C(b, lvl, K('SI '), ...cndP(b), K(' ALORS')); gen(b.body, lvl+1); L(lvl, K('SINON')); gen(b.body2, lvl+1); E(b, lvl, K('FIN SI')); break;
+      case 'repeter': C(b, lvl, K('RÉPÉTER '), T(exoVal(b, () => fv(b,'k0'))), K(' FOIS')); gen(b.body, lvl+1); E(b, lvl, K('FIN RÉPÉTER')); break;
+      case 'compter': C(b, lvl, K('POUR '), T(b.f.k0), K(' DE '), T(exoVal(b, () => fv(b,'k1'))), K(' À '), T(exoVal(b, () => fv(b,'k2'))), K(' PAR PAS DE '), T(exoVal(b, () => fv(b,'k3')))); gen(b.body, lvl+1); E(b, lvl, K('FIN POUR')); break;
+      case 'jusqua': C(b, lvl, K('RÉPÉTER JUSQU\'À '), ...cndP(b)); gen(b.body, lvl+1); E(b, lvl, K('FIN RÉPÉTER')); break;
+      case 'tantque': C(b, lvl, K('TANT QUE '), ...cndP(b), K(' FAIRE')); gen(b.body, lvl+1); E(b, lvl, K('FIN TANT QUE')); break;
+      case 'toujours': C(b, lvl, K('RÉPÉTER POUR TOUJOURS')); gen(b.body, lvl+1); E(b, lvl, K('FIN RÉPÉTER')); break;
+      case 'attJusqua': C(b, lvl, K('ATTENDRE JUSQU\'À '), ...cndP(b)); break;
+      case 'arret': C(b, lvl, K('ARRÊTER LE PROGRAMME')); break;
+      default: if (DEF[b.type].sh!=='hat') L(lvl, T(exoT(b, () => blockText(b))));
     } } };
   const first = sc.list[0]; if (!first) return out;
   const hat = DEF[first.type] && DEF[first.type].sh==='hat';
-  if (hat && !(first.type==='demarre' && !first.alg)) L(0, K('DÉBUT : '), T(hatText(first))); else L(0, K('DÉBUT'));
+  if (hat && !(first.type==='demarre' && !first.alg && !aTrous(first))) L(0, K('DÉBUT : '), T(exoT(first, () => hatText(first)))); else L(0, K('DÉBUT'));
   gen(hat ? sc.list.slice(1) : sc.list, 1);
   const last = sc.list[sc.list.length-1];
   if (!(last && ['toujours','arret'].includes(last.type))) L(0, K('FIN'));
   return out;
 }
 const algoPlain = sc => algoLines(sc).map(l => '    '.repeat(l.lvl) + l.parts.map(p => p[0]).join('')).join('\n');
-const algoHTML = sc => algoLines(sc).map(l => `<div class="al" style="padding-left:${l.lvl*2}em">${l.parts.map(p => p[1] ? '<b>' + aesc(p[0]) + '</b>' : aesc(p[0])).join('')}</div>`).join('');
+const algoHTML = sc => algoLines(sc).map(l => `<div class="al" style="padding-left:${l.lvl*2}em">${l.parts.map(p => { const h = EXO_ALG ? tokHTML(p[0]) : aesc(p[0]); return p[1] ? '<b>' + h + '</b>' : h; }).join('')}</div>`).join('');

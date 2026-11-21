@@ -1,5 +1,5 @@
 'use strict';
-const APP_VERSION = 'v1.12.0';
+const APP_VERSION = 'v1.13.0';
 const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
@@ -581,7 +581,7 @@ function itemImages(it){ // [{doc, id}] pour l'aperçu et l'export
   const sc = S.scripts.find(s => s.id===it.sid); if (!sc) return null;
   const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true, pick:it.mode==='assemble', exo: it.trous!==false && progATrous(sc) ? exoCtx(sc, it) : null};
   if (it.mode==='assemble'){ const o = newOut(opt); renderList(sc.list, 0, 0, o); return [{doc:svgDoc(o, 2)}]; }
-  if (it.mode==='algo'){ const st = ALG.style; if (it.algoStyle) ALG.style = it.algoStyle; const d = algoSVG(sc, 6); ALG.style = st; return d ? [{doc:d, algo:true}] : []; }
+  if (it.mode==='algo'){ const st = ALG.style; if (it.algoStyle) ALG.style = it.algoStyle; let d; try { d = avecTrousAlgo(sc, it, () => algoSVG(sc, 6)); } finally { ALG.style = st; } return d ? [{doc:d, algo:true}] : []; }
   return instrOf(it, sc).map(b => { const o = newOut(opt); renderBlock(b, 0, 0, o); return {doc:svgDoc(o, 2), id:b.id}; });
 }
 // cases à numéroter devant les instructions mises à plat (activées par défaut)
@@ -618,7 +618,9 @@ function drawDoc(){
         if (it.mode!=='algotext'){ const nc = chk('Cases à numéroter', 'num', 'Une case vide devant chaque instruction, pour écrire sa place dans le programme'); nc.querySelector('input').checked = numOn(it); opts.append(nc); } }
       if (it.mode!=='algo' && it.mode!=='algotext') opts.append(chk('Masquer les valeurs', 'blankV', 'Nombres et textes vides'), chk('Masquer les menus', 'blankD', 'Menus déroulants et couleurs vides'), chk('Noir et blanc', 'bw'));
       const sz = document.createElement('label'); sz.innerHTML = 'Taille '; const rg = document.createElement('input'); rg.type = 'range'; rg.min = 50; rg.max = 150; rg.step = 10; rg.value = Math.round((it.scale||1)*100); rg.oninput = () => { it.scale = rg.value/100; save(); drawDoc(); }; sz.append(rg); opts.append(sz);
-      if (it.mode==='algotext'){ const tv = document.createElement('div'); tv.className = 'algotxt'; tv.innerHTML = algoHTML(sc); box.append(tools, opts, tv); page.append(box); return; }
+      if (it.mode==='algotext'){ if (progATrous(sc)){ const tc = chk('Trous', 'trous', 'Afficher les trous d\'exercice de ce programme'); tc.querySelector('input').checked = it.trous!==false; opts.append(tc); }
+        const tv = document.createElement('div'); tv.className = 'algotxt'; tv.innerHTML = avecTrousAlgo(sc, it, () => algoHTML(sc)); box.append(tools, opts, tv);
+        if (EXO_LAST) box.insertAdjacentHTML('beforeend', exoHTML(it, sc, EXO_LAST)); page.append(box); return; }
       const view = document.createElement('div'); view.className = 'pview ' + it.mode;
       const imgs = itemImages(it), k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1), hid = new Set(it.hide||[]);
       for (const im of imgs){ const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
@@ -633,7 +635,7 @@ function drawDoc(){
         view.style.cursor = 'pointer'; view.onclick = e => { const g = e.target.closest('[data-bid]'); if (!g) return; const ref = locate(g.dataset.bid, [sc.list]); if (!ref) return; const k = e.target.closest('[data-k]'); trouDialog(blockAt(ref), k ? k.dataset.k : null); }; }
       if (progATrous(sc)){ const tc = chk('Trous', 'trous', 'Afficher les trous d\'exercice de ce programme'); tc.querySelector('input').checked = it.trous!==false; opts.append(tc); }
       box.append(tools, opts, view);
-      if (it.trous!==false && progATrous(sc)) box.insertAdjacentHTML('beforeend', exoHTML(it, sc));
+      if (it.trous!==false && progATrous(sc)) box.insertAdjacentHTML('beforeend', exoHTML(it, sc, it.mode==='algo' ? EXO_LAST : null));
     }
     page.append(box);
   });
@@ -663,7 +665,8 @@ async function exportDocx(){
       else if (it.t==='break') children.push(new Paragraph({children:[new PageBreak()]}));
       else if (it.t==='prog'){
         if (it.mode==='algotext'){ const sc = S.scripts.find(s => s.id===it.sid); if (!sc) continue;
-          for (const l of algoLines(sc)) children.push(new Paragraph({indent:{left:l.lvl*567}, spacing:{after:40}, children: l.parts.map(p => new TextRun({text:p[0], bold:p[1]}))})); continue; }
+          avecTrousAlgo(sc, it, () => { for (const l of algoLines(sc)) children.push(new Paragraph({indent:{left:l.lvl*567}, spacing:{after:40}, children: l.parts.flatMap(p => tokRuns(p[0], p[1], window.docx))})); });
+          if (EXO_LAST) exoDocx(it, sc, children, window.docx, EXO_LAST); continue; }
         const imgs = itemImages(it); if (!imgs) continue; const hid = new Set(it.hide||[]), k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1);
         const runs = [];
         for (const im of imgs){ if (im.id && hid.has(im.id)) continue;
@@ -675,7 +678,7 @@ async function exportDocx(){
         if (it.mode==='lines') runs.forEach(r => children.push(new Paragraph({spacing:{after:60}, children:r})));
         else if (it.mode==='line'){ const ch = []; runs.forEach((r, n) => { if (n) ch.push(new TextRun({text:'    '})); ch.push(...r); }); children.push(new Paragraph({spacing:{after:120}, children:ch})); }
         else children.push(new Paragraph({spacing:{before:60, after:120}, children:runs.flat()}));
-        { const sc = S.scripts.find(s => s.id===it.sid); if (sc && it.trous!==false && progATrous(sc)) exoDocx(it, sc, children, window.docx); }
+        { const sc = S.scripts.find(s => s.id===it.sid); if (sc && it.trous!==false && progATrous(sc)) exoDocx(it, sc, children, window.docx, it.mode==='algo' ? EXO_LAST : null); }
       }
     }
     if (!children.length) children.push(new Paragraph({children:[]}));
