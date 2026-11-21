@@ -1,4 +1,6 @@
 'use strict';
+const APP_VERSION = 'v1.2.0';
+const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -650,3 +652,47 @@ if (!S.scripts.length && !localStorage.getItem(KEY)){
   S.scripts.push({id:nid(), x:30, y:30, list:[a, r]}); selected = S.scripts[0].id;
 }
 syncProcs(); drawCats(); setView('prog'); draw();
+$('#ver').textContent = APP_VERSION;
+$('#ver').onclick = async () => { const v = await majVerifier(); note(v===null ? 'Vérification possible seulement sur le site en ligne, avec une connexion.' : v ? 'Version ' + v + ' disponible : utilisez « Mettre à jour » dans le bandeau.' : 'Vous avez la dernière version (' + APP_VERSION + ').'); };
+
+/* ═══════ Nouvelle version en ligne ? (contrôle à chaque ouverture, comme PlanClasse) ═══════
+   Lit la version dans l'en-tête de sw.js sur le site ; si elle est plus récente que APP_VERSION,
+   bandeau « Mettre à jour » : téléchargement forcé des fichiers, caches remplacés, rechargement. */
+const majCmp = (a, b) => { const p = x => String(x||'').replace(/^v/i,'').split('.').map(n => parseInt(n,10)||0); const A = p(a), B = p(b);
+  for (let i=0;i<3;i++){ const x = A[i]||0, y = B[i]||0; if (x!==y) return x<y ? -1 : 1; } return 0; };
+async function majVerifier(){
+  try { if (location.protocol!=='https:' || navigator.onLine===false) return null;
+    const r = await fetch('sw.js?maj=' + Date.now(), {cache:'no-store'}); if (!r || !r.ok) return null;
+    const m = (await r.text()).match(/\(V(\d+)\.(\d+)\.(\d+)\)/); const v = m ? 'v'+m[1]+'.'+m[2]+'.'+m[3] : '';
+    if (v && majCmp(APP_VERSION, v) < 0){ majBandeau(v); return v; }
+    return '';
+  } catch(e){ return null; }
+}
+function majBandeau(v){
+  let b = document.getElementById('maj-bandeau'); if (b) b.remove();
+  b = document.createElement('div'); b.id = 'maj-bandeau'; b.className = 'maj-bandeau'; b.setAttribute('role','status');
+  const tx = document.createElement('span'); tx.textContent = '🆕 Nouvelle version ' + v + ' disponible (vous avez ' + APP_VERSION + ')';
+  const ok = document.createElement('button'); ok.className = 'maj-ok'; ok.textContent = 'Mettre à jour';
+  const later = document.createElement('button'); later.className = 'maj-plt'; later.textContent = 'Plus tard'; later.title = 'Le bandeau reviendra à la prochaine ouverture';
+  ok.onclick = () => majAppliquer(v, tx, ok, later); later.onclick = () => b.remove();
+  b.append(tx, ok, later); document.body.append(b);
+}
+async function majAppliquer(v, tx, ok, later){
+  ok.disabled = true; later.style.display = 'none'; tx.textContent = '⏳ Téléchargement de la version ' + v + '…';
+  try {
+    const base = new URL('./', location.href.split('#')[0]).href, got = [];
+    for (const f of MAJ_FILES){ const u = new URL(f, base).href;
+      const r = await fetch(u + (u.includes('?') ? '&' : '?') + 'maj=' + Date.now(), {cache:'no-store'}); if (!r.ok) throw new Error('HTTP ' + r.status);
+      got.push([u, await r.arrayBuffer(), r.headers.get('content-type') || '']); }
+    const vf = got.find(g => g[0].endsWith(MAJ_VFILE)); const txt = vf ? new TextDecoder().decode(vf[1]) : '';
+    if (!txt.includes("const APP_VERSION = '" + v + "'")){ tx.textContent = 'La version ' + v + ' n\'est pas encore servie par le site : réessayez dans quelques minutes.'; ok.disabled = false; later.style.display = ''; return; }
+    tx.textContent = '⏳ Installation…';
+    if (window.caches){ for (const k of await caches.keys()) await caches.delete(k);
+      for (const name of [CACHE_PREFIX + APP_VERSION.replace(/\./g,'-'), CACHE_PREFIX + v.replace(/\./g,'-')]){ const c = await caches.open(name);
+        for (const [u, buf, type] of got){ const rep = new Response(buf.slice(0), {status:200, headers:{'Content-Type':type}}); await c.put(u, rep); if (u===base + 'index.html') await c.put(base, new Response(buf.slice(0), {status:200, headers:{'Content-Type':type}})); } } }
+    try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) await reg.update(); } catch(_){}
+    tx.textContent = '⏳ Redémarrage…'; location.reload();
+  } catch(e){ tx.textContent = 'Mise à jour impossible pour l\'instant (réseau ?). Fermez et rouvrez l\'application.'; ok.disabled = false; later.style.display = ''; }
+}
+setTimeout(majVerifier, 3000);
+

@@ -93,6 +93,12 @@ svg text{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600
 .pview.line .pimg,.pview.lines .pimg{cursor:pointer;border-radius:6px;outline:2px solid transparent}
 .pview.line .pimg:hover,.pview.lines .pimg:hover{outline-color:#93C5FD}
 .pimg.off{opacity:.18;outline:2px dashed #F87171 !important}
+.maj-bandeau{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:9500;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 20px);padding:8px 10px 8px 14px;border-radius:12px;background:#1D4ED8;color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:13px;font-weight:600}
+.maj-bandeau .maj-ok{border:0;border-radius:8px;background:#fff;color:#1D4ED8;font-weight:800;padding:6px 12px;font:inherit;font-weight:800;cursor:pointer}
+.maj-bandeau .maj-ok:disabled{opacity:.7;cursor:wait}
+.maj-bandeau .maj-plt{border:1px solid rgba(255,255,255,.5);border-radius:8px;background:transparent;color:#fff;padding:5px 10px;font:inherit;font-size:12px;cursor:pointer}
+#ver{font-size:11px;color:#94A3B8;border:none;background:none;padding:2px 4px;cursor:pointer}
+#ver:hover{color:#2563EB;text-decoration:underline}
 </style>
 </head>
 <body data-view="prog">
@@ -111,6 +117,7 @@ svg text{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:600
   <span class="sp"></span>
   <button id="bSave" title="Enregistrer les programmes et la fiche dans un fichier">💾 Enregistrer</button>
   <label class="file" title="Ouvrir un projet enregistré">📂 Ouvrir<input type="file" id="fOpen" accept=".json,application/json"></label>
+  <button id="ver" title="Version de l'appli : cliquer pour vérifier les mises à jour"></button>
 </header>
 <main class="only-prog">
   <nav id="cats"></nav>
