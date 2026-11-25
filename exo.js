@@ -68,6 +68,9 @@ function exoCtx(sc, it){
 function exoLignes(it, sc, found){ // [{parts:[[texte, gras, bleu]]}] ; found : lettres → réponses vues dans l'algorithme
   const c = exoCtx(sc, it), out = [];
   if (found) c.liste = c.liste.filter(t => found.has(t.L)).map(t => ({...t, ans:found.get(t.L)}));
+  if (it.banque && !CORR){ const a = c.liste.filter(t => t.s.rep!=='choix').map(t => t.ans).filter(Boolean), r = rng(seedOf(it) + 5);
+    for (let j = a.length - 1; j > 0; j--){ const m = Math.floor(r() * (j + 1)); [a[j], a[m]] = [a[m], a[j]]; }
+    if (a.length) out.push({parts:[['Réponses à placer : ', true], [a.join('     ·     '), false]]}); }
   c.liste.forEach((t, i) => { if (t.s.rep!=='choix') return;
     const opts = [t.ans, ...(t.s.props || []).filter(x => x && x!==t.ans)], r = rng(seedOf(it) + i * 97);
     for (let j = opts.length - 1; j > 0; j--){ const m = Math.floor(r() * (j + 1)); [opts[j], opts[m]] = [opts[m], opts[j]]; }

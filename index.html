@@ -236,6 +236,129 @@ body.sujetB #sSujet [data-s="B"].on{background:#7C3AED}
 .rel-t b{font-weight:700;letter-spacing:.02em}
 .rel-svg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .gerr{color:#B91C1C;font:13px system-ui,sans-serif;background:#FEF2F2;border-radius:8px;padding:8px 10px}
+/* exercices : barre d'outils, tiroir, plan, galerie, fiche express (v1.17.0) */
+#dwrap{display:flex;flex-direction:row;gap:18px;justify-content:center;align-items:flex-start}
+@media (max-width:1200px){#dwrap{flex-direction:row;align-items:flex-start}}
+body.tiroir-pin #docview{padding-right:376px}
+#dplan{width:190px;flex:none;position:sticky;top:0;max-height:calc(100vh - 140px);overflow:auto;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:12px 10px;font:13px system-ui,"Segoe UI",sans-serif;color:#1E293B;box-sizing:border-box}
+@media (max-width:1300px){body.tiroir-pin #dplan{display:none}}
+@media (max-width:1050px){#dplan{display:none}}
+#dplan .pl-t{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#64748B;margin-bottom:8px}
+#dplan .pl-i{padding:7px 9px;border-radius:8px;background:#F8FAFC;margin-bottom:5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid transparent}
+#dplan .pl-i:hover{border-color:#CBD5E1}
+#dplan .pl-i.txt{background:none;color:#64748B}
+#dplan .pl-i.on{background:#DBEAFE;font-weight:600;color:#1E293B}
+#dplan .pl-i.over{border-color:#2563EB;border-style:dashed}
+#dplan .pl-add{width:100%;margin-top:6px;font:600 13px system-ui;background:#EFF6FF;color:#1D4ED8;border:1px dashed #93C5FD;border-radius:8px;padding:7px}
+#dpanel{position:fixed !important;right:0;top:96px;bottom:0;width:360px !important;max-height:none !important;border-radius:0 !important;padding:0 !important;display:flex;flex-direction:column;z-index:40;transform:translateX(100%);transition:transform .18s ease;box-shadow:-10px 0 30px rgba(0,0,0,.10) !important;order:0 !important}
+#dpanel.open{transform:none}
+body:not([data-view="doc"]) #dpanel,body:not([data-view="doc"]) #dpTab{display:none}
+#dpanel .dp-top{display:flex;align-items:center;gap:6px;padding:8px 12px 0}
+#dpanel .dp-top button{border:none;background:none;font-size:16px;cursor:pointer;color:#64748B;padding:4px 6px;border-radius:6px}
+#dpanel .dp-pin{opacity:.45}#dpanel .dp-pin.on{opacity:1;background:#F1F5F9}
+#dpanel .dp-body{flex:1;overflow:auto;padding:4px 16px 18px}
+.dp-tabs{display:flex;gap:2px;border-bottom:1px solid #E2E8F0;margin:10px -16px 4px;padding:0 12px}
+.dp-tabs button{border:none;background:none;font:13px system-ui;padding:8px 9px;color:#475569;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.dp-tabs button.on{color:#1E293B;font-weight:600;border-bottom-color:#2563EB}
+.seg3{display:flex;border:1px solid #CBD5E1;border-radius:8px;overflow:hidden}
+.seg3 button{flex:1;border:none;background:#fff;font:13px system-ui;padding:7px 4px;cursor:pointer}
+.seg3 button+button{border-left:1px solid #CBD5E1}
+.seg3 button.on{background:#2563EB;color:#fff}
+.pcons{width:100%;box-sizing:border-box;font:13.5px system-ui;padding:8px;border:1px solid #CBD5E1;border-radius:8px;resize:vertical}
+.pavec{font:13px system-ui;padding:5px 8px;border:1px solid #CBD5E1;border-radius:8px}
+.chips button.pri{background:#2563EB;color:#fff;border-color:#2563EB}
+#dpTab{position:fixed;right:0;top:50%;z-index:39;writing-mode:vertical-rl;font:600 13px system-ui;background:#1E293B;color:#fff;border:none;border-radius:8px 0 0 8px;padding:12px 7px;cursor:pointer}
+body.tiroir-pin #dpTab{display:none}
+.item.it-prog{margin-top:6px}
+.item.sel.it-prog{margin-top:44px}
+.item.sel.it-prog .itools,.item.sel.it-prog .ilabel{display:none !important}
+.ibar{position:absolute;left:-1px;right:-1px;top:-40px;height:36px;background:#1E293B;border-radius:9px 9px 0 0;display:flex;align-items:center;gap:5px;padding:0 7px;z-index:3;font:12.5px system-ui;box-sizing:border-box}
+.ibar button{border:none;background:#334155;color:#fff;font:12.5px system-ui;border-radius:6px;padding:5px 8px;cursor:pointer;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.ibar button:hover{background:#475569}
+.ibar button.ic{background:none;padding:5px 5px}
+.ibar-seg{display:flex;background:#334155;border-radius:6px;overflow:hidden}
+.ibar-seg button{background:none;border-radius:0;padding:5px 7px}
+.ibar-seg button.on{background:#2563EB}
+.consigne{font-family:Aptos,"Segoe UI",Calibri,sans-serif;font-size:16px;line-height:1.4;margin:2px 0 8px}
+.consigne .ctxt{outline:none;border-bottom:1px dashed transparent}
+.item:hover .consigne .ctxt,.consigne .ctxt:focus{border-bottom-color:#94A3B8}
+#aExo{font-weight:600;background:#2563EB;color:#fff;border-color:#2563EB}
+#wsAct{position:absolute;display:none;gap:6px;z-index:5}
+#wsAct button{font:13px system-ui;border-radius:8px;padding:6px 11px;border:1px solid #CBD5E1;background:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+#wsAct button.pri{background:#2563EB;color:#fff;border-color:#2563EB;font-weight:600}
+.gal-ov .gal{background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.3);font:14px system-ui,"Segoe UI",sans-serif;color:#1E293B;max-width:94vw;max-height:92vh;overflow:auto;box-sizing:border-box}
+.gal1{width:1060px;padding:24px 26px 18px}
+.gal-h{display:flex;align-items:baseline;gap:14px}
+.gal-h h2{margin:0;font-size:23px}
+.gal-x,.gal-x2{border:none;background:none;font-size:20px;color:#64748B;cursor:pointer}
+.gal-x2{font-size:14px;border:1px solid #CBD5E1;border-radius:8px;padding:8px 14px;background:#fff}
+.gal-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:18px}
+.gal-c{display:flex;flex-direction:column;align-items:stretch;text-align:left;border:1px solid #E2E8F0;border-radius:14px;padding:12px;background:#fff;cursor:pointer;font:inherit;color:inherit;gap:3px}
+.gal-c:hover{border-color:#2563EB;background:#EFF6FF;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.gal-c.libre{border-style:dashed;background:#F8FAFC}
+.gal-c b{font-size:15px;margin-top:8px}
+.gal-c .d{font-size:12.5px;color:#475569;line-height:1.4}
+.gal-c .n{font-size:11.5px;color:#1D4ED8;font-weight:600;margin-top:5px}
+.mini{height:88px;background:#F8FAFC;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:5px;box-sizing:border-box;overflow:hidden;position:relative}
+.mini i.b{display:block;height:13px;border-radius:3px}
+.mini i.y{background:#FFBF00;border-radius:4px 10px 4px 4px}.mini i.o{background:#FFAB19}.mini i.u{background:#4C97FF}.mini i.v{background:#9966FF}
+.mini i.e{outline:2px solid #DC2626;outline-offset:2px}
+.mini i.h{display:block;width:34px;height:12px;border:2px solid #111;background:#fff;border-radius:3px}
+.mini .r{display:flex;gap:6px;align-items:center}.mini .r.j{justify-content:space-between}
+.mini .k{width:15px;height:15px;border:2px solid #111;border-radius:4px;font-size:9px;display:grid;place-items:center;flex:none}
+.mini em{font-style:normal;font-size:10px;color:#334155}
+.mini .q{position:absolute;inset:8px;background-image:linear-gradient(#CBD5E1 1px,transparent 1px),linear-gradient(90deg,#CBD5E1 1px,transparent 1px);background-size:16px 16px;background-color:#fff;border-radius:6px}
+.mini .q:after{content:"";position:absolute;left:24px;top:14px;width:48px;height:38px;border-left:3px solid #1D4ED8;border-top:3px solid #1D4ED8}
+.mini .c{display:flex;flex-direction:column;gap:5px;flex:1}.mini .c.t{font-size:9.5px;line-height:1.6;flex:none}
+.mini i.d{display:block;border-bottom:1.5px dotted #64748B;height:9px}
+.mini i.x{display:block;height:11px;border:1.5px dashed #94A3B8;border-radius:3px}
+.mini .g{font-size:30px;color:#475569;margin:auto}
+.gal-f{display:flex;align-items:center;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid #E2E8F0;flex-wrap:wrap}
+.pill{border:1px solid #CBD5E1;border-radius:999px;padding:4px 10px;background:#fff;font:13px system-ui;cursor:pointer}
+.lien{border:none;background:none;color:#2563EB;font:600 13px system-ui;cursor:pointer;padding:4px}
+.gal2{width:1160px;height:min(760px,92vh);display:flex;padding:0 !important;overflow:hidden !important}
+.gal-steps{width:220px;flex:none;background:#F8FAFC;border-right:1px solid #E2E8F0;padding:22px 16px;display:flex;flex-direction:column;gap:14px;font-size:12.5px;color:#475569;box-sizing:border-box}
+.gal-steps .st{display:flex;gap:10px;align-items:flex-start}
+.gal-steps .st b{font-size:14px;color:#1E293B}
+.gal-steps .st span{width:24px;height:24px;border-radius:50%;background:#2563EB;color:#fff;display:grid;place-items:center;font-size:13px;flex:none}
+.gal-steps .st.ok span{background:#16A34A}
+.gal-mid{flex:1;padding:20px 22px;display:flex;flex-direction:column;gap:8px;min-width:0;overflow:auto}
+.gal-mid h3{margin:6px 0 2px;font-size:16px}
+.gal-progs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gal-p{display:flex;flex-direction:column;gap:2px;text-align:left;border:1px solid #E2E8F0;border-radius:10px;padding:8px 10px;background:#fff;font:12.5px system-ui;color:#475569;cursor:pointer}
+.gal-p b{color:#1E293B;font-size:13px}
+.gal-p span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gal-p em{font-style:normal;color:#B45309;font-size:11.5px}
+.gal-p.on,.gal-n.on{border:2px solid #2563EB;background:#EFF6FF}
+.gal-p:disabled{opacity:.55;cursor:not-allowed}
+.gal-nivs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.gal-n{display:flex;flex-direction:column;gap:4px;text-align:left;border:1px solid #E2E8F0;border-radius:12px;padding:10px 12px;background:#fff;font:12.5px system-ui;color:#475569;line-height:1.45;cursor:pointer}
+.gal-n b{color:#1E293B;font-size:14px}
+.gal-cons{width:100%;box-sizing:border-box;font:14px system-ui;padding:9px 10px;border:1px solid #CBD5E1;border-radius:8px}
+.gal-act{display:flex;gap:10px;justify-content:flex-end}
+.gal-act .pri{font:600 14px system-ui;background:#2563EB;color:#fff;border:none;border-radius:10px;padding:10px 18px;cursor:pointer}
+.gal-act .pri:disabled{opacity:.5;cursor:not-allowed}
+.gal-prev{width:350px;flex:none;background:#F1F5F9;border-left:1px solid #E2E8F0;padding:18px 16px;display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
+.gal-prev .pt{display:flex;align-items:center;justify-content:space-between}
+.seg2.sm button{padding:3px 9px;font-size:12px}
+.gal-page{flex:1;background:#fff;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:auto;padding:12px}
+.gal-zoom{width:740px;zoom:.42;pointer-events:none}
+.exp{width:520px;max-width:86vw}
+.exp-l{display:flex;flex-direction:column;gap:7px}
+.exp-r{display:flex;gap:10px;align-items:center;border:1px solid #E2E8F0;border-radius:10px;padding:8px 12px;cursor:pointer}
+.exp-r.off{opacity:.55;cursor:not-allowed}
+.exp-t{flex:1;display:flex;flex-direction:column;font-size:13.5px}
+.exp-d{font-size:12px;color:#64748B}
+.exp-r select{font:12.5px system-ui;padding:4px 6px;border:1px solid #CBD5E1;border-radius:6px}
+#hdr{flex-wrap:nowrap !important;overflow:hidden}
+#hdr > *{flex-shrink:0}
+#hdr .sp{flex:1 1 0;min-width:4px}
+@media (max-width:1580px){#hdr .lbl{display:none}}
+@media (max-width:1100px){#hdr .h-logo b{display:none}}
+.gal-c,.gal-n,.gal-p{white-space:normal}
+.gal-p.on,.gal-n.on{color:#475569}
+.gal-p.on b,.gal-n.on b{color:#1E293B}
+.gal-progs{max-height:208px;overflow:auto;padding:2px}
 .exo-props{font-family:Aptos,"Segoe UI",Calibri,sans-serif;font-size:15px;line-height:1.9;margin:4px 0 8px 6px}
 .exo-t{border-collapse:collapse;font-size:13px}
 .exo-t th{font-size:12px;color:#64748B;text-align:left;padding:4px 6px;border-bottom:1px solid #E2E8F0}
@@ -378,8 +501,9 @@ body.acc-on{overflow:hidden}
 </main>
 <section id="docview" class="only-doc">
   <div id="doctools">
+    <button id="aExo">＋ Exercice</button>
     <button id="aText">+ Texte</button>
-    <button id="aProg">+ Programmes…</button>
+    <button id="aProg">+ Programme (libre)</button>
     <button id="aBreak">+ Saut de page</button>
     <span style="flex:1"></span>
     <input id="dname" placeholder="Nom du fichier" value="Fiche programmation">
@@ -387,7 +511,7 @@ body.acc-on{overflow:hidden}
     <span class="seg2" id="sCorr"><button data-c="0" class="on">Élève</button><button data-c="1">Corrigé</button></span>
     <span class="seg2 dl"><button id="bDocx" class="pri">⬇ Exporter en .docx</button><button id="bDocxM" class="pri" title="Exporter plusieurs versions d'un coup">▾</button></span>
   </div>
-  <div id="dwrap"><div id="page"></div><aside id="dpanel"></aside></div>
+  <div id="dwrap"><nav id="dplan" aria-label="Plan de la fiche"></nav><div id="page"></div><aside id="dpanel"></aside></div><button id="dpTab" title="Ouvrir les réglages">⚙ Réglages</button>
 </section>
 <div id="accueil" role="dialog" aria-modal="true" aria-label="Accueil de l'Atelier blocs" hidden>
 <div class="acc-w">
@@ -466,7 +590,7 @@ body.acc-on{overflow:hidden}
     <div class="acc-carte"><i style="background:#FF6680"></i><h3>Créer mes blocs</h3><p>Des blocs personnalisés, avec paramètres.</p><button type="button" data-go="mesblocs">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#16A34A"></i><h3>Importer un projet</h3><p>Un fichier Scratch (.sb3) ou mBlock (.mblock).</p><button type="button" data-go="importer">Ouvrir</button></div>
     <div class="acc-carte"><i style="background:#0D9488"></i><h3>Exporter vers Scratch ou mBlock</h3><p>Pour ouvrir les programmes dans Scratch ou les téléverser dans le robot.</p><button type="button" data-go="exporter">Ouvrir</button></div>
-    <div class="acc-carte"><i style="background:#C2410C"></i><h3>Exercice à trous</h3><p>Valeurs, instruction ou ligne entière à trouver ; réponse à écrire ou au choix ; corrigé et barème.</p><button type="button" data-go="trous">Ouvrir</button></div>
+    <div class="acc-carte"><i style="background:#C2410C"></i><h3>Faire un exercice</h3><p>Compléter, remettre dans l'ordre, trouver l'erreur, relier, prévoir le trajet… en trois clics, avec le corrigé.</p><button type="button" data-go="trous">Ouvrir</button></div>
   </div>
   <div class="acc-pied">
     <span>Ou bien <a href="#" data-go="complet">ouvrez l'atelier complet</a>, avec tous les outils.</span>
@@ -487,6 +611,7 @@ body.acc-on{overflow:hidden}
 <script src="fiche.js"></script>
 <script src="erreur.js"></script>
 <script src="relier.js"></script>
+<script src="exos.js"></script>
 <script>if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !/claude|claudeusercontent/.test(location.host)) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body>
 </html>

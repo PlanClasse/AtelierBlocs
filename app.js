@@ -1,6 +1,6 @@
 'use strict';
-const APP_VERSION = 'v1.16.0';
-const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './fiche.js', './erreur.js', './relier.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
+const APP_VERSION = 'v1.17.0';
+const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './fiche.js', './erreur.js', './relier.js', './exos.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -452,6 +452,8 @@ $('#wsv').addEventListener('contextmenu', e => {
       ask('Formulation de ce bloc dans l\'algorigramme et l\'algorithme (vide : formulation automatique)', cur, v => { v = v.trim(); const auto = (() => { const a = b.alg; delete b.alg; const t = txtOf(); if (a) b.alg = a; return t; })();
         if (!v || v===auto){ delete b.alg; delete b.asrc; } else { b.alg = v; b.asrc = auto; } draw(); }); }]]),
     ['✏️ Trou d\'exercice…', () => { const k = e.target.closest('[data-k]'); trouDialog(b, k ? k.dataset.k : null); }],
+    ['🎯 Faire une fiche sur ce programme…', () => ouvrirExpress(sc)],
+    ['＋ Exercice sur ce programme…', () => ouvrirGalerie({sid:sc.id})],
     ['🐞 Version avec erreurs (« trouver l\'erreur »)', () => errAller(errCopie(sc), ERR_AIDE)],
     ['📄 Ajouter ce programme à la fiche', () => { addProgToDoc(sc.id); }],
     ['📷 Image de ce programme', () => { selected = sc.id; capture(); }],
@@ -584,7 +586,8 @@ function itemImages(it){ // [{doc, id}] pour l'aperçu et l'export
   const sc = S.scripts.find(s => s.id===it.sid); if (!sc) return null;
   const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true, errs: CORR && errOn(it, sc) ? errMarks(sc) : null, pick:it.mode==='assemble' || it.mode==='line' || it.mode==='lines', exo: it.trous!==false && progATrous(sc) ? exoCtx(sc, it) : null};
   if (it.mode==='assemble'){ const o = newOut(opt); renderList(sc.list, 0, 0, o); return [{doc:svgDoc(o, 2)}]; }
-  if (it.mode==='grille'){ const d = grilleSVG(it, sc); return d.err ? [] : [{doc:d, grille:true}]; }
+  if (it.mode==='grille'){ const d = grilleSVG(it, sc); return d.err ? [] : [{doc:d, grille:true, raw:true}]; }
+  if (it.mode==='cadre'){ if (!CORR) return [{doc:cadreDoc(it, sc), raw:true}]; const o = newOut(opt); renderList(sc.list, 0, 0, o); return [{doc:svgDoc(o, 2)}]; }
   if (it.mode==='algo'){ const st = ALG.style; if (it.algoStyle) ALG.style = it.algoStyle; let d; try { d = avecTrousAlgo(sc, it, () => algoSVG(sc, 6)); } finally { ALG.style = st; } return d ? [{doc:d, algo:true}] : []; }
   return instrOf(it, sc).map(b => { const o = newOut(opt); renderBlock(b, 0, 0, o); return {doc:svgDoc(o, 2), id:b.id}; });
 }
@@ -593,7 +596,7 @@ const numOn = it => aPlat(it) && ordreDe(it)==='cases';
 const CASE_DOC = {w:26, h:26, svg:'<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26"><rect x="1.5" y="1.5" width="23" height="23" fill="#fff" stroke="#111" stroke-width="2"/></svg>'};
 function drawDoc(){
   const page = $('#page'); page.innerHTML = '';
-  if (!S.doc.length) page.innerHTML = '<p class="muted" style="text-align:center;margin-top:40px">La fiche est vide. Ajoutez un texte ou un programme avec les boutons ci-dessus.<br>Astuce : clic droit sur un programme de la zone de travail → « Ajouter ce programme à la fiche ».</p>';
+  if (!S.doc.length) page.innerHTML = '<p class="muted" style="text-align:center;margin-top:40px">La fiche est vide. Cliquez sur « ＋ Exercice » pour choisir un exercice, ou ajoutez un texte ou un programme libre.<br>Astuce : clic droit sur un programme de la zone de travail → « Ajouter ce programme à la fiche ».</p>';
   S.doc.forEach((it, i) => {
     const box = document.createElement('div'); box.className = 'item it-' + it.t;
     if (!it.id) it.id = nid(); box.dataset.id = it.id; if (it.id===SEL_IT) box.classList.add('sel'); box.addEventListener('pointerdown', () => ficheSel(it.id));
@@ -611,7 +614,7 @@ function drawDoc(){
     else if (it.t==='prog') ficheProg(it, i, box, tools);
     page.append(box);
   });
-  fichePanel();
+  fichePanel(); drawPlan();
 }
 function setView(v){ VIEW = v; document.body.dataset.view = v; document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.v===v)); if (v==='doc') drawDoc(); else drawWS(); }
 
@@ -636,23 +639,7 @@ async function exportDocx(){
     for (const it of S.doc){
       if (it.t==='text'){ for (const runs of htmlRuns(it.html)) children.push(new Paragraph({spacing:{after:80}, children: runs.map(r => new TextRun({text:r.text, bold:r.b, italics:r.i, underline:r.u ? {} : undefined}))})); }
       else if (it.t==='break') children.push(new Paragraph({children:[new PageBreak()]}));
-      else if (it.t==='prog'){
-        if (it.mode==='relier'){ const sc = S.scripts.find(s => s.id===it.sid); if (!sc) continue; await relierDocx(it, sc, children, window.docx); if (errOn(it, sc)) errDocx(it, sc, children, window.docx); continue; }
-        if (it.mode==='algotext'){ const sc = S.scripts.find(s => s.id===it.sid); if (!sc) continue; await ficheAlgoDocx(it, sc, children, window.docx); continue; }
-        const imgs = itemImages(it); if (!imgs) continue; const scx = S.scripts.find(s => s.id===it.sid), info = aPlat(it) ? ordreInfo(it, scx) : null; const hid = new Set(it.hide||[]), k = it.mode==='grille' ? 1 : (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1);
-        const runs = [];
-        for (const im of imgs){ if (im.id && hid.has(im.id)) continue;
-          const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
-          const data = new Uint8Array(await (await toPNG(im.doc, 3)).arrayBuffer());
-          const img = new ImageRun({type:'png', data, transformation:{width:Math.round(w), height:Math.round(h)}});
-          const pd = im.id && info ? await prefixPNG(it, scx, im.id, info) : null; if (pd){ const c = Math.round(18*(it.scale||1)); runs.push([new ImageRun({type:'png', data:pd, transformation:{width:c, height:c}}), new TextRun({text:'  '}), img]); }
-          else runs.push([img]); }
-        if (it.mode==='lines') runs.forEach(r => children.push(new Paragraph({spacing:{after:60}, children:r})));
-        else if (it.mode==='line'){ const ch = []; runs.forEach((r, n) => { if (n) ch.push(new TextRun({text:'    '})); ch.push(...r); }); children.push(new Paragraph({spacing:{after:120}, children:ch})); }
-        else children.push(new Paragraph({spacing:{before:60, after:120}, children:runs.flat()}));
-        if (info && ordreDe(it)==='reperes') ordreDocx(info.rep0, children, window.docx);
-        { const sc = S.scripts.find(s => s.id===it.sid); if (sc && it.trous!==false && progATrous(sc)) exoDocx(it, sc, children, window.docx, it.mode==='algo' ? EXO_LAST : null); if (sc && errOn(it, sc)) errDocx(it, sc, children, window.docx); }
-      }
+      else if (it.t==='prog') await exportProg(it, children);
     }
     if (!children.length) children.push(new Paragraph({children:[]}));
     const docu = new Document({creator:'Atelier blocs', styles:{default:{document:{run:{font:'Aptos', size:24}}}},
