@@ -1,5 +1,5 @@
 'use strict';
-/* ═══════════════ Atelier blocs · fiche d'exercices (v1.15.0) ═══════════════
+/* ═══════════════ Atelier blocs · fiche d'exercices (v1.16.0) ═══════════════
    Panneau de réglages à droite de la page (élément sélectionné), trous en un clic dans l'aperçu,
    remise en ordre (rangs dans des cases ou repères en lettres « G - A - D »), sujets A / B, export groupé. */
 let SUJET = 'A', SEL_IT = null, SEL_TROU = null, EXP_TAG = false;
@@ -12,8 +12,8 @@ function ordreDe(it){
   if (it.ordre) return it.ordre;
   if (it.mode==='algotext') return it.shuffle ? 'cases' : 'aucun';
   return it.num===false ? 'aucun' : 'cases'; }
-const MODES = [['assemble','Assemblé'],['line','À plat, en ligne'],['lines','À plat, en liste'],['algo','Algorigramme'],['algotext','Algorithme']];
-const modeNom = m => ({assemble:'Programme assemblé', line:'Instructions à plat (ligne)', lines:'Instructions à plat (liste)', algo:'Algorigramme', algotext:'Algorithme'})[m] || m;
+const MODES = [['assemble','Assemblé'],['line','À plat, en ligne'],['lines','À plat, en liste'],['algo','Algorigramme'],['algotext','Algorithme'],['relier','Relier'],['grille','Quadrillage']];
+const modeNom = m => ({assemble:'Programme assemblé', line:'Instructions à plat (ligne)', lines:'Instructions à plat (liste)', algo:'Algorigramme', algotext:'Algorithme', relier:'Relier', grille:'Quadrillage'})[m] || m;
 
 /* ---------- Remise en ordre ---------- */
 // instructions à plat : repère (lettre) dans l'ordre d'affichage, rang dans l'ordre du programme
@@ -70,6 +70,14 @@ function ficheProg(it, i, box, tools){
     if (EXO_LAST) box.insertAdjacentHTML('beforeend', exoHTML(it, sc, EXO_LAST));
     if (errOn(it, sc)) box.insertAdjacentHTML('beforeend', errHTML(it, sc));
     return; }
+  if (it.mode==='relier'){ const v = document.createElement('div'); v.innerHTML = relierHTML(it, sc);
+    v.onclick = e => { const g = e.target.closest('.rel-g[data-bid]'); if (!g) return; SEL_IT = it.id; it.hide = [...new Set([...(it.hide || []), g.dataset.bid])]; save(); drawDoc(); };
+    box.append(v); requestAnimationFrame(() => relLignes(box));
+    if (errOn(it, sc)) box.insertAdjacentHTML('beforeend', errHTML(it, sc)); return; }
+  if (it.mode==='grille'){ const d = grilleSVG(it, sc);
+    if (d.err) box.insertAdjacentHTML('beforeend', `<p class="gerr">Quadrillage impossible : ${esc(d.err)}. Voir le panneau de réglages.</p>`);
+    else { const w = Math.min(d.w, 718), h = d.h * (w / d.w); box.insertAdjacentHTML('beforeend', '<div class="pview">' + d.svg.replace('<svg ', `<svg style="width:${w}px;height:${h}px" `) + '</div>'); }
+    if (errOn(it, sc)) box.insertAdjacentHTML('beforeend', errHTML(it, sc)); return; }
   const view = document.createElement('div'); view.className = 'pview ' + it.mode;
   const imgs = itemImages(it), hid = new Set(it.hide||[]), info = aPlat(it) ? ordreInfo(it, sc) : null, px = Math.round(22*(it.scale||1));
   for (const im of imgs){ const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
@@ -116,23 +124,25 @@ function fichePanel(){
   if (!it || it.t!=='prog'){ P.innerHTML = panelFiche(it); bindFiche(P); return; }
   const sc = S.scripts.find(s => s.id===it.sid);
   if (!sc){ P.innerHTML = '<h3>Programme supprimé</h3><p class="hint">Ce programme n\'existe plus dans la zone de travail. Retirez l\'élément avec ✕.</p>'; return; }
-  const blocs = it.mode!=='algo' && it.mode!=='algotext', o = ordreDe(it), hidN = (it.hide||[]).length;
+  const blocs = ['assemble', 'line', 'lines'].includes(it.mode), o = ordreDe(it), hidN = (it.hide||[]).length;
   const ctx = exoCtx(sc, it), liste = ctx.liste;
   let h = `<h3>${esc(progLabel(sc))}</h3><p class="sub">Élément ${i + 1} de la fiche</p>
   <div class="ps"><div class="pt">Présentation</div>${chips(MODES, it.mode, 'mode')}
     ${it.mode==='algo' ? `<div class="prow">Style ${chips([['classic','Classique'],['sysml','SysML']], it.algoStyle || ALG.style, 'astyle')}</div>` : ''}
     <div class="prow"><label>Taille <input type="range" class="psz" min="50" max="150" step="10" value="${Math.round((it.scale||1)*100)}"></label>${blocs ? `<label><input type="checkbox" class="pbw"${it.bw ? ' checked' : ''}> Noir et blanc</label>` : ''}</div></div>`;
+  h += panelRelGrille(it, sc);
   if (aPlat(it) || it.mode==='algotext') h += `<div class="ps"><div class="pt">Remettre dans l'ordre</div>
     <div class="prow"><label><input type="checkbox" class="psh"${it.shuffle ? ' checked' : ''}> Mélanger ${it.mode==='algotext' ? 'les lignes' : 'les instructions'}</label>${it.shuffle ? '<button class="sm pre-mix" title="Tirer un autre mélange">🔀 Autre mélange</button>' : ''}</div>
     <div class="prow">Repérage ${chips([['cases','Rangs (cases)','Une case vide devant chaque instruction : l\'élève écrit 1, 2, 3…'],['reperes','Repères (G - A - D)','Une lettre devant chaque instruction : l\'élève écrit la suite des lettres dans l\'ordre'],['aucun','Aucun']], o, 'ordre')}</div>
     ${aPlat(it) && hidN ? `<p class="hint">${hidN} instruction${hidN > 1 ? 's' : ''} cachée${hidN > 1 ? 's' : ''} (en pâle dans l'aperçu, clic pour la remettre). <button class="sm pre-show">Tout remettre</button></p>` : ''}</div>`;
-  h += `<div class="ps"><div class="pt">Trous <span>${liste.length ? liste.length + ' · ' + liste.reduce((s, t) => s + (+t.s.pts || 0), 0) + ' pt' : ''}</span></div>`;
+  if (!['relier', 'grille'].includes(it.mode)){ h += `<div class="ps"><div class="pt">Trous <span>${liste.length ? liste.length + ' · ' + liste.reduce((s, t) => s + (+t.s.pts || 0), 0) + ' pt' : ''}</span></div>`;
   if (blocs) h += `<p class="hint">Clic sur une valeur ou un menu dans l'aperçu : le trou est créé. Clic ailleurs sur une instruction : nom, ligne entière, cacher…</p>`;
   else h += `<p class="hint">Les trous se placent sur les blocs (présentation « Assemblé », ou clic droit dans la zone de travail) ; ils sont repris ici avec la formulation de ${it.mode==='algo' ? 'l\'algorigramme' : 'l\'algorithme'}.</p>`;
   if (liste.length) h += `<div class="prow"><label><input type="checkbox" class="ptr"${it.trous!==false ? ' checked' : ''}> Afficher les trous sur cet élément</label></div>` + liste.map(t => carteTrou(t)).join('');
   if (blocs) h += `<div class="prow"><label><input type="checkbox" class="pbv"${it.blankV ? ' checked' : ''}> Vider toutes les valeurs</label><label><input type="checkbox" class="pbd"${it.blankD ? ' checked' : ''}> Vider tous les menus</label></div>`;
-  h += '</div>' + panelErr(it, sc) + `<div class="ps"><div class="pt">Ajouter le même programme</div><div class="chips">${MODES.filter(m => m[0]!==it.mode).map(([v, l]) => `<button data-dup="${v}">+ ${l}</button>`).join('')}</div>
-    <p class="hint">Pratique pour relier le programme à son algorigramme ou à son algorithme.</p></div>`;
+  h += '</div>'; }
+  h += panelErr(it, sc) + `<div class="ps"><div class="pt">Ajouter le même programme</div><div class="chips">${MODES.filter(m => m[0]!==it.mode).map(([v, l]) => `<button data-dup="${v}">+ ${l}</button>`).join('')}</div>
+    <p class="hint">Par exemple le programme assemblé au-dessus de son quadrillage.</p></div>`;
   P.innerHTML = h;
   const up = (fn, all = true) => { fn(); save(); if (all) drawDoc(); else fichePanel(); };
   P.querySelectorAll('[data-mode]').forEach(x => x.onclick = () => up(() => { it.mode = x.dataset.mode; if (it.mode==='algo' && !it.algoStyle) it.algoStyle = ALG.style; }));
@@ -145,7 +155,7 @@ function fichePanel(){
   const sz = P.querySelector('.psz'); if (sz) sz.onchange = () => up(() => it.scale = sz.value / 100);
   const mx = P.querySelector('.pre-mix'); if (mx) mx.onclick = () => up(() => it.seed = Math.floor(Math.random()*1e6));
   const sh = P.querySelector('.pre-show'); if (sh) sh.onclick = () => up(() => it.hide = []);
-  P.querySelectorAll('.hc').forEach(c => bindCarte(c, sc)); bindErr(P, it, sc, i);
+  P.querySelectorAll('.hc').forEach(c => bindCarte(c, sc)); bindErr(P, it, sc, i); bindRelGrille(P, it);
   if (SEL_TROU){ const c = P.querySelector(`.hc[data-t="${SEL_TROU}"]`); if (c){ c.scrollIntoView({block:'nearest'}); c.classList.add('flash'); const a = c.querySelector('.ans'); if (a) a.focus(); } SEL_TROU = null; } }
 function carteTrou(t){
   const p = partiesDe(t.b).find(x => x.key===t.key) || {label:t.key}, s = t.s || {};
@@ -175,7 +185,8 @@ function panelFiche(it){
       <li><b>Compléter</b> : en « Assemblé », clic sur une valeur ou un menu pour faire un trou.</li>
       <li><b>Écrire une instruction</b> : clic sur l'instruction › Trou : ligne entière.</li>
       <li><b>Trouver l'erreur</b> : réglages d'un programme › « Créer la version avec erreurs », puis modifiez la copie.</li>
-      <li><b>Relier</b> : « Ajouter le même programme » en algorigramme ou en algorithme.</li></ul></div>
+      <li><b>Relier</b> : présentation « Relier » (blocs, algorithme, algorigramme : deux au choix).</li>
+      <li><b>Prévoir le trajet</b> : présentation « Quadrillage » (avancer / tourner de valeurs précises).</li></ul></div>
     <div class="ps"><div class="pt">Sujets A et B</div><p class="hint">${mix ? `Le sujet B change ${mix} élément${mix > 1 ? 's' : ''} : autre ordre des instructions, des repères et des propositions.` : 'Le sujet B est pour l\'instant identique au sujet A : cochez « Mélanger » sur un élément, ou faites des trous « au choix ».'}</p></div>`; }
 function bindFiche(P){ P.querySelectorAll('[data-add]').forEach(b => b.onclick = () => ({text:'#aText', prog:'#aProg', break:'#aBreak'})[b.dataset.add] && $(({text:'#aText', prog:'#aProg', break:'#aBreak'})[b.dataset.add]).click()); }
 

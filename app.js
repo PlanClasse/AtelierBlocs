@@ -1,6 +1,6 @@
 'use strict';
-const APP_VERSION = 'v1.15.0';
-const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './fiche.js', './erreur.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
+const APP_VERSION = 'v1.16.0';
+const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './fiche.js', './erreur.js', './relier.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -584,6 +584,7 @@ function itemImages(it){ // [{doc, id}] pour l'aperçu et l'export
   const sc = S.scripts.find(s => s.id===it.sid); if (!sc) return null;
   const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true, errs: CORR && errOn(it, sc) ? errMarks(sc) : null, pick:it.mode==='assemble' || it.mode==='line' || it.mode==='lines', exo: it.trous!==false && progATrous(sc) ? exoCtx(sc, it) : null};
   if (it.mode==='assemble'){ const o = newOut(opt); renderList(sc.list, 0, 0, o); return [{doc:svgDoc(o, 2)}]; }
+  if (it.mode==='grille'){ const d = grilleSVG(it, sc); return d.err ? [] : [{doc:d, grille:true}]; }
   if (it.mode==='algo'){ const st = ALG.style; if (it.algoStyle) ALG.style = it.algoStyle; let d; try { d = avecTrousAlgo(sc, it, () => algoSVG(sc, 6)); } finally { ALG.style = st; } return d ? [{doc:d, algo:true}] : []; }
   return instrOf(it, sc).map(b => { const o = newOut(opt); renderBlock(b, 0, 0, o); return {doc:svgDoc(o, 2), id:b.id}; });
 }
@@ -636,8 +637,9 @@ async function exportDocx(){
       if (it.t==='text'){ for (const runs of htmlRuns(it.html)) children.push(new Paragraph({spacing:{after:80}, children: runs.map(r => new TextRun({text:r.text, bold:r.b, italics:r.i, underline:r.u ? {} : undefined}))})); }
       else if (it.t==='break') children.push(new Paragraph({children:[new PageBreak()]}));
       else if (it.t==='prog'){
+        if (it.mode==='relier'){ const sc = S.scripts.find(s => s.id===it.sid); if (!sc) continue; await relierDocx(it, sc, children, window.docx); if (errOn(it, sc)) errDocx(it, sc, children, window.docx); continue; }
         if (it.mode==='algotext'){ const sc = S.scripts.find(s => s.id===it.sid); if (!sc) continue; await ficheAlgoDocx(it, sc, children, window.docx); continue; }
-        const imgs = itemImages(it); if (!imgs) continue; const scx = S.scripts.find(s => s.id===it.sid), info = aPlat(it) ? ordreInfo(it, scx) : null; const hid = new Set(it.hide||[]), k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1);
+        const imgs = itemImages(it); if (!imgs) continue; const scx = S.scripts.find(s => s.id===it.sid), info = aPlat(it) ? ordreInfo(it, scx) : null; const hid = new Set(it.hide||[]), k = it.mode==='grille' ? 1 : (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1);
         const runs = [];
         for (const im of imgs){ if (im.id && hid.has(im.id)) continue;
           const w = Math.min(im.doc.w*k, 718), h = im.doc.h * (w/im.doc.w);
