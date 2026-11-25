@@ -1,6 +1,6 @@
 'use strict';
-const APP_VERSION = 'v1.14.0';
-const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './fiche.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
+const APP_VERSION = 'v1.15.0';
+const MAJ_FILES = ['./index.html', './app.js', './catalogue.js', './algo.js', './exo.js', './import.js', './accueil.js', './ui.js', './fiche.js', './erreur.js', './flux.html', './docx.iife.js', './manifest.json'], MAJ_VFILE = 'app.js', CACHE_PREFIX = 'atelier-blocs-';
 /* ═══════════════ Atelier blocs mBlock · moteur ═══════════════ */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -221,6 +221,7 @@ function renderBlock(b, x, y, o){
     renderList(b.body, x+ARM, y1, o);
     if (sh==='e'){ const y2 = y1 + L.m[0] + L.rows[1].h; if (o.snaps) o.snaps.push({kind:'inside', x:x+ARM, y:y2, list:b.body2, i:0}); renderList(b.body2, x+ARM, y2, o); }
   }
+  if (o.errs){ const em = o.errs.get(b.id); if (em) errSVG(em, b, x, y, L, o); }
   return L.h;
 }
 function renderList(list, x, y, o){
@@ -350,7 +351,8 @@ function drawWS(){
   const o = newOut({live:true, snaps:[]}); let sel = '';
   for (const s of S.scripts){
     const box0 = {...o.box}; o.box = {x1:1e9, y1:1e9, x2:-1e9, y2:-1e9};
-    renderList(s.list, s.x, s.y, o);
+    o.errs = s.orig ? errMarks(s) : null; renderList(s.list, s.x, s.y, o); o.errs = null;
+    if (s.orig && s.list.length){ const r = errRef(s); o.svg += `<text x="${o.box.x1}" y="${o.box.y1 - 12}" style="fill:#B91C1C;font-size:13px;font-weight:700;pointer-events:none">🐞 Version avec erreurs${r ? ' de ' + esc(progLabel(r).replace(/ : .*/, '')) : ' (original supprimé)'}</text>`; }
     const f = s.list[0];
     if (f && !['hat','rep','bool'].includes(DEF[f.type].sh)) o.snaps.push({kind:'before', x:s.x, y:s.y, list:s.list, s});
     if (s.id===selected && s.list.length) sel = `<rect x="${o.box.x1-6}" y="${o.box.y1-6}" width="${o.box.x2-o.box.x1+12}" height="${o.box.y2-o.box.y1+6}" rx="10" fill="none" stroke="#4C97FF" stroke-width="2" stroke-dasharray="6 5" opacity=".75"/>`;
@@ -450,6 +452,7 @@ $('#wsv').addEventListener('contextmenu', e => {
       ask('Formulation de ce bloc dans l\'algorigramme et l\'algorithme (vide : formulation automatique)', cur, v => { v = v.trim(); const auto = (() => { const a = b.alg; delete b.alg; const t = txtOf(); if (a) b.alg = a; return t; })();
         if (!v || v===auto){ delete b.alg; delete b.asrc; } else { b.alg = v; b.asrc = auto; } draw(); }); }]]),
     ['✏️ Trou d\'exercice…', () => { const k = e.target.closest('[data-k]'); trouDialog(b, k ? k.dataset.k : null); }],
+    ['🐞 Version avec erreurs (« trouver l\'erreur »)', () => errAller(errCopie(sc), ERR_AIDE)],
     ['📄 Ajouter ce programme à la fiche', () => { addProgToDoc(sc.id); }],
     ['📷 Image de ce programme', () => { selected = sc.id; capture(); }],
     ['🗑 Supprimer ce bloc', () => { if (ref.type==='list') ref.list.splice(ref.i, 1); else delete ref.parent.in[ref.k]; cleanScripts(); draw(); }],
@@ -575,11 +578,11 @@ function explode(list){ const out = [];
   const rec = b => { out.push(strip(b)); Object.values(b.in||{}).forEach(rec); (b.body||[]).forEach(rec); (b.body2||[]).forEach(rec); };
   list.forEach(rec); return out; }
 function instrOf(it, sc){ let ins = explode(sc.list); if (it.shuffle){ const r = rng(seedOf(it)); for (let i=ins.length-1;i>0;i--){ const j = Math.floor(r()*(i+1)); [ins[i], ins[j]] = [ins[j], ins[i]]; } } return ins; }
-const progLabel = sc => { const f = sc.list[0]; if (!f) return 'Programme vide'; const n = S.scripts.indexOf(sc) + 1; return 'Programme ' + n + ' : ' + (DEF[f.type].sh==='hat' ? hatText(f) : blockText(f)).slice(0, 50) + (sc.list.length > 1 ? ' (+' + (explode(sc.list).length - 1) + ')' : ''); };
+const progLabel = sc => { const f = sc.list[0]; if (!f) return 'Programme vide'; const n = S.scripts.indexOf(sc) + 1; return 'Programme ' + n + ' : ' + (DEF[f.type].sh==='hat' ? hatText(f) : blockText(f)).slice(0, 50) + (sc.list.length > 1 ? ' (+' + (explode(sc.list).length - 1) + ')' : '') + (sc.orig ? ' 🐞' : ''); };
 const PXK = 0.62;  // taille des images dans le document (1 = taille écran)
 function itemImages(it){ // [{doc, id}] pour l'aperçu et l'export
   const sc = S.scripts.find(s => s.id===it.sid); if (!sc) return null;
-  const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true, pick:it.mode==='assemble' || it.mode==='line' || it.mode==='lines', exo: it.trous!==false && progATrous(sc) ? exoCtx(sc, it) : null};
+  const opt = {bw:it.bw, blankV:it.blankV, blankD:it.blankD, forceColor:true, errs: CORR && errOn(it, sc) ? errMarks(sc) : null, pick:it.mode==='assemble' || it.mode==='line' || it.mode==='lines', exo: it.trous!==false && progATrous(sc) ? exoCtx(sc, it) : null};
   if (it.mode==='assemble'){ const o = newOut(opt); renderList(sc.list, 0, 0, o); return [{doc:svgDoc(o, 2)}]; }
   if (it.mode==='algo'){ const st = ALG.style; if (it.algoStyle) ALG.style = it.algoStyle; let d; try { d = avecTrousAlgo(sc, it, () => algoSVG(sc, 6)); } finally { ALG.style = st; } return d ? [{doc:d, algo:true}] : []; }
   return instrOf(it, sc).map(b => { const o = newOut(opt); renderBlock(b, 0, 0, o); return {doc:svgDoc(o, 2), id:b.id}; });
@@ -646,7 +649,7 @@ async function exportDocx(){
         else if (it.mode==='line'){ const ch = []; runs.forEach((r, n) => { if (n) ch.push(new TextRun({text:'    '})); ch.push(...r); }); children.push(new Paragraph({spacing:{after:120}, children:ch})); }
         else children.push(new Paragraph({spacing:{before:60, after:120}, children:runs.flat()}));
         if (info && ordreDe(it)==='reperes') ordreDocx(info.rep0, children, window.docx);
-        { const sc = S.scripts.find(s => s.id===it.sid); if (sc && it.trous!==false && progATrous(sc)) exoDocx(it, sc, children, window.docx, it.mode==='algo' ? EXO_LAST : null); }
+        { const sc = S.scripts.find(s => s.id===it.sid); if (sc && it.trous!==false && progATrous(sc)) exoDocx(it, sc, children, window.docx, it.mode==='algo' ? EXO_LAST : null); if (sc && errOn(it, sc)) errDocx(it, sc, children, window.docx); }
       }
     }
     if (!children.length) children.push(new Paragraph({children:[]}));

@@ -1,5 +1,5 @@
 'use strict';
-/* ═══════════════ Atelier blocs · fiche d'exercices (v1.14.0) ═══════════════
+/* ═══════════════ Atelier blocs · fiche d'exercices (v1.15.0) ═══════════════
    Panneau de réglages à droite de la page (élément sélectionné), trous en un clic dans l'aperçu,
    remise en ordre (rangs dans des cases ou repères en lettres « G - A - D »), sujets A / B, export groupé. */
 let SUJET = 'A', SEL_IT = null, SEL_TROU = null, EXP_TAG = false;
@@ -59,7 +59,7 @@ function ficheProg(it, i, box, tools){
   const sc = S.scripts.find(s => s.id===it.sid);
   const lab = document.createElement('div'); lab.className = 'ilabel';
   if (!sc){ lab.textContent = 'Programme supprimé'; box.append(tools, lab); box.insertAdjacentHTML('beforeend', '<p class="muted">Ce programme a été supprimé de la zone de travail.</p>'); return; }
-  lab.textContent = progLabel(sc).replace(/^Programme (\d+) : .*/, 'Programme $1') + ' · ' + modeNom(it.mode); box.append(tools, lab);
+  lab.textContent = progLabel(sc).replace(/^Programme (\d+) : .*/, 'Programme $1') + ' · ' + modeNom(it.mode) + (errOn(it, sc) ? ' · 🐞 trouver l\'erreur' : ''); box.append(tools, lab);
   const k = (it.mode==='algo' ? 0.75 : PXK) * (it.scale||1), o = ordreDe(it);
   if (it.mode==='algotext'){
     let rep0 = null; const tv = document.createElement('div'); tv.className = 'algotxt';
@@ -68,6 +68,7 @@ function ficheProg(it, i, box, tools){
     box.append(tv);
     if (o==='reperes') box.insertAdjacentHTML('beforeend', ordreHTML(rep0));
     if (EXO_LAST) box.insertAdjacentHTML('beforeend', exoHTML(it, sc, EXO_LAST));
+    if (errOn(it, sc)) box.insertAdjacentHTML('beforeend', errHTML(it, sc));
     return; }
   const view = document.createElement('div'); view.className = 'pview ' + it.mode;
   const imgs = itemImages(it), hid = new Set(it.hide||[]), info = aPlat(it) ? ordreInfo(it, sc) : null, px = Math.round(22*(it.scale||1));
@@ -80,7 +81,8 @@ function ficheProg(it, i, box, tools){
   if (it.mode==='assemble' || aPlat(it)) view.onclick = e => ficheClic(e, it, sc);
   box.append(view);
   if (aPlat(it) && o==='reperes') box.insertAdjacentHTML('beforeend', ordreHTML(info.rep0));
-  if (it.trous!==false && progATrous(sc)) box.insertAdjacentHTML('beforeend', exoHTML(it, sc, it.mode==='algo' ? EXO_LAST : null)); }
+  if (it.trous!==false && progATrous(sc)) box.insertAdjacentHTML('beforeend', exoHTML(it, sc, it.mode==='algo' ? EXO_LAST : null));
+  if (errOn(it, sc)) box.insertAdjacentHTML('beforeend', errHTML(it, sc)); }
 
 /* ---------- Clic dans l'aperçu : trou en un clic, ou petit menu ---------- */
 const SPEC0 = key => ({rep:'libre', props:[], pos:'auto', pts: key==='ligne' ? 2 : 1});
@@ -129,7 +131,7 @@ function fichePanel(){
   else h += `<p class="hint">Les trous se placent sur les blocs (présentation « Assemblé », ou clic droit dans la zone de travail) ; ils sont repris ici avec la formulation de ${it.mode==='algo' ? 'l\'algorigramme' : 'l\'algorithme'}.</p>`;
   if (liste.length) h += `<div class="prow"><label><input type="checkbox" class="ptr"${it.trous!==false ? ' checked' : ''}> Afficher les trous sur cet élément</label></div>` + liste.map(t => carteTrou(t)).join('');
   if (blocs) h += `<div class="prow"><label><input type="checkbox" class="pbv"${it.blankV ? ' checked' : ''}> Vider toutes les valeurs</label><label><input type="checkbox" class="pbd"${it.blankD ? ' checked' : ''}> Vider tous les menus</label></div>`;
-  h += `</div><div class="ps"><div class="pt">Ajouter le même programme</div><div class="chips">${MODES.filter(m => m[0]!==it.mode).map(([v, l]) => `<button data-dup="${v}">+ ${l}</button>`).join('')}</div>
+  h += '</div>' + panelErr(it, sc) + `<div class="ps"><div class="pt">Ajouter le même programme</div><div class="chips">${MODES.filter(m => m[0]!==it.mode).map(([v, l]) => `<button data-dup="${v}">+ ${l}</button>`).join('')}</div>
     <p class="hint">Pratique pour relier le programme à son algorigramme ou à son algorithme.</p></div>`;
   P.innerHTML = h;
   const up = (fn, all = true) => { fn(); save(); if (all) drawDoc(); else fichePanel(); };
@@ -143,7 +145,7 @@ function fichePanel(){
   const sz = P.querySelector('.psz'); if (sz) sz.onchange = () => up(() => it.scale = sz.value / 100);
   const mx = P.querySelector('.pre-mix'); if (mx) mx.onclick = () => up(() => it.seed = Math.floor(Math.random()*1e6));
   const sh = P.querySelector('.pre-show'); if (sh) sh.onclick = () => up(() => it.hide = []);
-  P.querySelectorAll('.hc').forEach(c => bindCarte(c, sc));
+  P.querySelectorAll('.hc').forEach(c => bindCarte(c, sc)); bindErr(P, it, sc, i);
   if (SEL_TROU){ const c = P.querySelector(`.hc[data-t="${SEL_TROU}"]`); if (c){ c.scrollIntoView({block:'nearest'}); c.classList.add('flash'); const a = c.querySelector('.ans'); if (a) a.focus(); } SEL_TROU = null; } }
 function carteTrou(t){
   const p = partiesDe(t.b).find(x => x.key===t.key) || {label:t.key}, s = t.s || {};
@@ -172,6 +174,7 @@ function panelFiche(it){
       <li><b>Remettre dans l'ordre</b> : présentation « À plat » ou « Algorithme », Mélanger, puis rangs ou repères.</li>
       <li><b>Compléter</b> : en « Assemblé », clic sur une valeur ou un menu pour faire un trou.</li>
       <li><b>Écrire une instruction</b> : clic sur l'instruction › Trou : ligne entière.</li>
+      <li><b>Trouver l'erreur</b> : réglages d'un programme › « Créer la version avec erreurs », puis modifiez la copie.</li>
       <li><b>Relier</b> : « Ajouter le même programme » en algorigramme ou en algorithme.</li></ul></div>
     <div class="ps"><div class="pt">Sujets A et B</div><p class="hint">${mix ? `Le sujet B change ${mix} élément${mix > 1 ? 's' : ''} : autre ordre des instructions, des repères et des propositions.` : 'Le sujet B est pour l\'instant identique au sujet A : cochez « Mélanger » sur un élément, ou faites des trous « au choix ».'}</p></div>`; }
 function bindFiche(P){ P.querySelectorAll('[data-add]').forEach(b => b.onclick = () => ({text:'#aText', prog:'#aProg', break:'#aBreak'})[b.dataset.add] && $(({text:'#aText', prog:'#aProg', break:'#aBreak'})[b.dataset.add]).click()); }
@@ -203,4 +206,5 @@ async function ficheAlgoDocx(it, sc, children, D){
     const pre = o!=='aucun' ? [new D.ImageRun({type:'png', data: await prefPNG(o, o==='reperes' ? l.rep : l.rang), transformation:{width:17, height:17}}), new D.TextRun({text:'  '})] : [];
     children.push(new D.Paragraph({indent:{left:l.lvl*567}, spacing:{after:50}, children:[...pre, ...runs]})); }
   if (o==='reperes') ordreDocx(rep0, children, D);
-  if (found) exoDocx(it, sc, children, D, found); }
+  if (found) exoDocx(it, sc, children, D, found);
+  if (errOn(it, sc)) errDocx(it, sc, children, D); }
